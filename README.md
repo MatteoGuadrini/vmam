@@ -25,7 +25,7 @@ based on [RFC 3580](https://tools.ietf.org/html/rfc3580).
 ### Manual mode
 
 In manual mode, mac-addresses are managed from the command line using the `vmam mac` command.
-The **mac** command has options to add, remove and disable the mac-addresses that can access the network.
+The *mac* command has options to add, remove and disable the mac-addresses that can access the network.
 For more details, see the docs.
 
 ### Automatic mode
@@ -39,4 +39,34 @@ contacts ldap, takes the last machines that contact the LDAP server, contacts th
 takes the information of the last connected user and the tabs of active network, LDAP check to see which VLAN-ID (LDAP group)
 assign to the mac-address and then exit.
 
-If you were to specify the `--deamon/-d` argument then the process would continue until a manual interrupt(<kbd>CTRL</kbd>+<kbd>C</kbd>).
+If you were to specify the `--deamon/-d` argument then the process would continue until a manual interrupt (<kbd>CTRL</kbd>+<kbd>C</kbd>).
+
+
+## How to start
+
+Let's start with our network architecture.
+
+### Configure network architecture and radius server
+
+Before starting to use `vmam`, you need to know your network architecture and configure it correctly.
+Read these RFCs carefully ([RFC 3580](https://tools.ietf.org/html/rfc3580), [RFC 4014](https://tools.ietf.org/html/rfc4014).
+[RFC 2865](https://tools.ietf.org/html/rfc2865)) and choose a radius server based on your architecture 
+([freeradius](https://freeradius.org/) or [Microsoft Radius](https://docs.microsoft.com/it-it/windows-server/networking/technologies/nps/nps-top)).
+
+Once the network equipment and radius server have been configured, create ldap groups corresponding to the VLAn that you want to manage. 
+
+e.g .: *VLAN_ID 100 on switch to group LDAP VLAN100.*
+
+This VLAN100 group must be configured on the VLAN ID in the radius server corresponding to the VLAN100 group.
+
+### Get configuration by vmam
+
+You can configure _vmam_ before configuring your network architecture.
+
+You can start creating a default file by typing: `vmam config --new`
+
+This will create a standard configuration file under `/etc/vmam/vmam.conf` on Unix and `C:\vmam\vmam.conf` on Windows.
+
+Now it will be enough, edit and customize the configuration file following the comments as guidelines. Once done, type `vmam config --get-cmd`
+
+This command will return the guide to correctly configure LDAP and the radius server based on the configuration file.
