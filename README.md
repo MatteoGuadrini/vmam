@@ -20,7 +20,7 @@ based on [RFC 3580](https://tools.ietf.org/html/rfc3580).
 
 ### vmam architecture
 
-_vmam_ is a server-side application. Work with an LDAP server or Active Directory. 
+_vmam_ is a server-side application. Work with an open-source directory server or Active Directory through LDAP protocol. 
 Basically it creates mac address users that represent the network card of a machine and associates these users with LDAP groups 
 that represent the various VLANs specified created on their own network architecture (wi-fi, switches, routers, firewalls, etc.).
 In addition, based on its configuration, it can also associate computer accounts with this group to allow access to the network 
