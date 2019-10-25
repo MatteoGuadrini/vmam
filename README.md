@@ -26,7 +26,8 @@ that represent the various VLANs specified created on their own network architec
 In addition, based on its configuration, it can also associate computer accounts with this group to allow access to the network 
 by spending the credentials of the computer account.
 
-_vmam_ can be installed on a Unix base server. The computer accounts linked to the domain (for now) must be Microsoft Windows.
+_vmam_ can be installed on a Unix base server. The computer accounts linked to the domain, for only automatic mode must be Microsoft Windows.
+Manual mode work with only mac-address user and therefore the operating system is indifferent.
 
 ## How do you do it?
 
@@ -80,3 +81,24 @@ This will create a standard configuration file under `/etc/vmam/vmam.conf` on Un
 Now it will be enough, edit and customize the configuration file following the comments as guidelines. Once done, type `vmam config --get-cmd`
 
 This command will return the guide to correctly configure LDAP and the radius server based on the configuration file.
+
+## Open source
+_vmam_ is a open source project. Any contribute, It's welcome.
+
+**A great thanks**.
+
+For donations, press this
+
+For me
+
+[![paypal](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif)](https://www.paypal.me/guos)
+
+For [Telethon](http://www.telethon.it/)
+
+The Telethon Foundation is a non-profit organization recognized by the Ministry of University and Scientific and Technological Research.
+They were born in 1990 to respond to the appeal of patients suffering from rare diseases.
+Come today, we are organized to dare to listen to them and answers, every day of the year.
+
+<a href="https://dona.telethon.it/it/dona-ora"> <img src="http://www.telethon.it/sites/all/themes/telethon/images/svg/logo.svg" alt="Telethon" title="Telethon" width="200" height="104" /> </a>
+
+[Adopt the future](https://www.ioadottoilfuturo.it/)
