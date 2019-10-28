@@ -2,7 +2,7 @@
 
 `vmam` is a command line tool which allows the management and maintenance of the mac-addresses 
 that access the network under a specific domain and a specific VLAN, through LDAP authentication.
-This is based on [RFC 3580](https://tools.ietf.org/html/rfc3580).
+This is based on [RFC 3579](https://tools.ietf.org/html/rfc3579#section-2.1).
 
 > ATTENTION: This is a project under development!
 
@@ -16,7 +16,8 @@ This is based on [RFC 3580](https://tools.ietf.org/html/rfc3580).
 
 **vmam** is a command line tool, which manages, manually or automatically, 
 access to the network based on the configurations of its network equipment through LDAP (or Active Directory), 
-based on [RFC 3580](https://tools.ietf.org/html/rfc3580).
+based on [RFC 3580](https://tools.ietf.org/html/rfc3580), [RFC 4014](https://tools.ietf.org/html/rfc4014),
+[RFC 2865](https://tools.ietf.org/html/rfc2865), [RFC 3579](https://tools.ietf.org/html/rfc3579).
 
 ### vmam architecture
 
@@ -61,7 +62,7 @@ Let's start with our network architecture.
 
 Before starting to use `vmam`, you need to know your network architecture and configure it correctly.
 Read these RFCs carefully ([RFC 3580](https://tools.ietf.org/html/rfc3580), [RFC 4014](https://tools.ietf.org/html/rfc4014),
-[RFC 2865](https://tools.ietf.org/html/rfc2865)) and choose a radius server based on your architecture 
+[RFC 2865](https://tools.ietf.org/html/rfc2865), [RFC 3579](https://tools.ietf.org/html/rfc3579)) and choose a radius server based on your architecture 
 ([freeradius](https://freeradius.org/) or [Microsoft Radius](https://docs.microsoft.com/it-it/windows-server/networking/technologies/nps/nps-top)).
 
 Once the network equipment and radius server have been configured, create ldap groups corresponding to the VLAn that you want to manage. 
