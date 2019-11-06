@@ -44,4 +44,16 @@ Welcome to doc of vmam: VLAN Mac-address Authentication Manager
             $> vmam config --get-cmd
             It takes instructions to configure its own network and radius server structure,
             from standard path: /etc/vmam/vmam.cfg
+
+        start {action}: Automatic action for vmam environment
+
+            --config-file/-c {parameter}: Specify a configuration file in a custom path (optional).
+
+            $> vmam start --config-file /home/arthur/vmam.cfg
+            Start automatic process based on custom path configuration file: /home/arthur/vmam.cfg
+
+            --daemon/-d {parameter}: If specified, the automatic process run in background.
+
+            $> vmam start --daemon
+            Start automatic process in background based on standard path: /etc/vmam/vmam.cfg
 """
