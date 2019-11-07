@@ -47,13 +47,49 @@ Welcome to doc of vmam: VLAN Mac-address Authentication Manager
 
         start {action}: Automatic action for vmam environment
 
-            --config-file/-c {parameter}: Specify a configuration file in a custom path (optional).
+            --config-file/-c {parameter}: Specify a configuration file in a custom path (optional)
 
             $> vmam start --config-file /home/arthur/vmam.cfg
             Start automatic process based on custom path configuration file: /home/arthur/vmam.cfg
 
-            --daemon/-d {parameter}: If specified, the automatic process run in background.
+            --daemon/-d {parameter}: If specified, the automatic process run in background
 
             $> vmam start --daemon
             Start automatic process in background based on standard path: /etc/vmam/vmam.cfg
+
+        mac {action}: Manual action for adding, modifying, deleting and disabling of the mac-address users
+
+            --add/-a {parameter}: Add a specific mac-address on LDAP with specific VLAN. See also --vlan-id/-v
+
+            $> vmam mac --add 000018ff12dd --vlan-id 110
+            Add new mac-address user with VLAN 110, based on standard configuration file: /etc/vmam/vmam.cfg
+
+            --remove/-r {parameter}: Remove a mac-address user on LDAP
+
+            $> vmam mac --remove 000018ff12dd
+            Remove mac-address user 000018ff12dd, based on standard configuration file: /etc/vmam/vmam.cfg
+
+            --disable/-d {parameter}: Disable a mac-address user on LDAP, without removing
+
+            $> vmam mac --disable 000018ff12dd
+            Disable mac-address user 000018ff12dd, based on standard configuration file: /etc/vmam/vmam.cfg
+
+            --force/-f {parameter}: Force add/remove/disable action
+
+            $> vmam mac --remove 000018ff12dd --force
+            Force remove mac-address user 000018ff12dd, based on standard configuration file: /etc/vmam/vmam.cfg
+
+            $> vmam mac --add 000018ff12dd --vlan-id 111 --force
+            Modify new or existing mac-address user with VLAN 111, based on standard configuration
+            file: /etc/vmam/vmam.cfg
+
+            --vlan-id/-v {parameter}: Specify a specific VLAN-id
+
+            $> vmam mac --add 000018ff12dd --vlan-id 100
+            Add new mac-address user with VLAN 100, based on standard configuration file: /etc/vmam/vmam.cfg
+
+            --config-file/-c {parameter}: Specify a configuration file in a custom path (optional)
+
+            $> vmam mac --remove 000018ff12dd --config-file /opt/vlan-office/office.cfg
+            Remove mac-address user 000018ff12dd, based on custom configuration file: /opt/vlan-office/office.cfg
 """
