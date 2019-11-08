@@ -92,4 +92,12 @@ Welcome to doc of vmam: VLAN Mac-address Authentication Manager
 
             $> vmam mac --remove 000018ff12dd --config-file /opt/vlan-office/office.cfg
             Remove mac-address user 000018ff12dd, based on custom configuration file: /opt/vlan-office/office.cfg
+
+    AUTHOR
+
+        Matteo Guadrini <matteo.guadrini@hotmail.it>
+
+    COPYRIGHT
+
+        (c) Matteo Guadrini. All rights reserved.
 """
