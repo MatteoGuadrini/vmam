@@ -21,7 +21,11 @@
 #     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """
-Welcome to doc of vmam: VLAN Mac-address Authentication Manager
+VLAN Mac-address Authentication Manager
+
+vmam is a command line tool which allows the management and maintenance of the mac-addresses
+that access the network under a specific domain and a specific VLAN, through LDAP authentication.
+This is based on RFC-3579(https://tools.ietf.org/html/rfc3579#section-2.1).
 
     SYNOPSYS
 
