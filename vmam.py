@@ -105,3 +105,49 @@ This is based on RFC-3579(https://tools.ietf.org/html/rfc3579#section-2.1).
 
         (c) Matteo Guadrini. All rights reserved.
 """
+
+# region Imports
+
+import sys
+
+# endregion
+
+# region Check dependencies module are installed
+
+
+def check_module(module):
+    """
+    This function checks if a module is installed.
+    :param module: The name of the module you want to check
+    :return: boolean
+    """
+    return module in sys.modules
+
+
+# endregion
+
+# region Import dependencies
+
+import daemon
+import ldap3
+import winrm
+
+# endregion
+
+# region Start process
+
+if __name__ == '__main__':
+    # Check import dependencies
+    if not check_module('daemon'):
+        print('Install daemon module: pip3 install python-daemon')
+        exit(1)
+
+    if not check_module('ldap3'):
+        print('Install ldap3 module: pip3 install ldap3')
+        exit(1)
+
+    if not check_module('winrm'):
+        print('Install winrm module: pip3 install pywinrm')
+        exit(1)
+
+# endregion
