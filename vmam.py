@@ -105,3 +105,11 @@ This is based on RFC-3579(https://tools.ietf.org/html/rfc3579#section-2.1).
 
         (c) Matteo Guadrini. All rights reserved.
 """
+
+# region Import dependencies
+
+import daemon
+import ldap3
+import winrm
+
+# endregion
