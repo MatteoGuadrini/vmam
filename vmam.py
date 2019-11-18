@@ -109,10 +109,11 @@ This is based on RFC-3579(https://tools.ietf.org/html/rfc3579#section-2.1).
 # region Imports
 
 import sys
+import yaml
 
 # endregion
 
-# region Check dependencies module are installed
+# region Function for check dependencies module are installed
 
 
 def check_module(module):
@@ -134,9 +135,25 @@ import winrm
 
 # endregion
 
+# region Functions
+
+
+def read_config(path):
+    """
+    Open YAML config file
+    :param path: Path of config file
+    :return:
+    """
+    with open('{0}'.format(path)) as file:
+        return yaml.full_load(file)
+
+# endregion
+
+
 # region Start process
 
 if __name__ == '__main__':
+
     # Check import dependencies
     if not check_module('daemon'):
         print('Install daemon module: pip3 install python-daemon')
