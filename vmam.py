@@ -111,6 +111,7 @@ This is based on RFC-3579(https://tools.ietf.org/html/rfc3579#section-2.1).
 import sys
 import yaml
 
+
 # endregion
 
 # region Function for check dependencies module are installed
@@ -133,6 +134,7 @@ import daemon
 import ldap3
 import winrm
 
+
 # endregion
 
 # region Functions
@@ -142,10 +144,22 @@ def read_config(path):
     """
     Open YAML config file
     :param path: Path of config file
-    :return:
+    :return: Python object
     """
     with open('{0}'.format(path)) as file:
         return yaml.full_load(file)
+
+
+def write_config(obj, path):
+    """
+    Write YAML config file
+    :param obj: Python object that will be converted to YAML
+    :param path: Path of config file
+    :return: nothing
+    """
+    with open('{0}'.format(path), 'w') as file:
+        yaml.dump(obj, file)
+
 
 # endregion
 
