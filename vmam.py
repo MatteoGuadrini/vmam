@@ -108,8 +108,10 @@ This is based on RFC-3579(https://tools.ietf.org/html/rfc3579#section-2.1).
 
 # region Imports
 
+import os
 import sys
 import yaml
+import platform
 
 
 # endregion
@@ -159,6 +161,23 @@ def write_config(obj, path):
     """
     with open('{0}'.format(path), 'w') as file:
         yaml.dump(obj, file)
+
+
+def get_platform():
+    """
+    Get a platform (OS info)
+    :return: Platform info dictionary
+    """
+    # Create os info object
+    os_info = {}
+    # Check os
+    if platform.system() == "Windows":
+        os_info['path_default'] = os.path.expandvars(r'%PROGRAMFILES%\vmam')
+        os_info['ping_opt'] = '-n 2 -w 20000 2>&1 >NUL'
+    else:
+        os_info['path_default'] = '/etc/vmam'
+        os_info['ping_opt'] = '-c 2 -w 20000 2>&1 >/dev/null'
+    return os_info
 
 
 # endregion
