@@ -157,7 +157,7 @@ def write_config(obj, path):
     Write YAML config file
     :param obj: Python object that will be converted to YAML
     :param path: Path of config file
-    :return: nothing
+    :return: None
     """
     with open('{0}'.format(path), 'w') as file:
         yaml.dump(obj, file)
@@ -172,13 +172,55 @@ def get_platform():
     os_info = {}
     # Check os
     if platform.system() == "Windows":
-        os_info['path_default'] = os.path.expandvars(r'%PROGRAMFILES%\vmam')
+        os_info['conf_default'] = os.path.expandvars(r'%PROGRAMFILES%\vmam\vmam.yml')
+        os_info['log_default'] = os.path.expandvars(r'%WINDIR%\Logs\vmam\vmam.log')
         os_info['ping_opt'] = '-n 2 -w 20000 2>&1 >NUL'
     else:
-        os_info['path_default'] = '/etc/vmam'
+        os_info['conf_default'] = '/etc/vmam/vmam.yml'
+        os_info['log_default'] = '/var/log/vmam/vmam.log'
         os_info['ping_opt'] = '-c 2 -w 20000 2>&1 >/dev/null'
     return os_info
 
+
+def new_config(path=(get_platform()['conf_default'])):
+    """
+    Create a new vmam config file (YAML)
+    :param path: Path of config file
+    :return: None
+    """
+    conf = {
+        'LDAP': {
+            'servers': 'dc1,dc2',
+            'ssl': 'true|false',
+            'tls': 'true|false',
+            'bind_user': 'vlan_user',
+            'bind_pwd': 'secret',
+            'base_dn': 'DC=foo,DC=bar',
+            'mac_user_base_dn': 'OU=mac-users,DC=foo,DC=bar',
+            'verify_attrib': 'memberof, cn',
+            'write_attrib': 'extensionattribute1,extensionattribute2',
+            'match': 'like|exactly',
+            'add_group_type': 'user, computer',
+            'other_group': 'second_grp,third_grp'
+        },
+        'VMAM': {
+            'mac_format': 'none|hypen|colon|dot',
+            'soft_deletion': 'true|false',
+            'filter_exclude': ['list'],
+            'log': get_platform()['log_default'],
+            'user_match_id': [{
+                'value1': '100',
+                'value2': '101'
+            }],
+            'vlan_group_id': [{
+                '100': 'group1',
+                '101': 'group2'
+            }],
+            'winrm_user': 'admin',
+            'winrm_pwd': 'secret'
+        }
+    }
+    write_config(conf, path)
 
 # endregion
 
@@ -199,5 +241,6 @@ if __name__ == '__main__':
     if not check_module('winrm'):
         print('Install winrm module: pip3 install pywinrm')
         exit(1)
+    new_config("/tmp/vmam.cfg")
 
 # endregion
