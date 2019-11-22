@@ -111,6 +111,7 @@ This is based on RFC-3579(https://tools.ietf.org/html/rfc3579#section-2.1).
 import os
 import sys
 import yaml
+import socket
 import platform
 
 
@@ -196,8 +197,11 @@ def new_config(path=(get_platform()['conf_default'])):
             'tls': 'true|false',
             'bind_user': 'vlan_user',
             'bind_pwd': 'secret',
-            'base_dn': 'DC=foo,DC=bar',
+            'user_base_dn': 'DC=foo,DC=bar',
+            'computer_base_dn': 'DC=foo,DC=bar',
             'mac_user_base_dn': 'OU=mac-users,DC=foo,DC=bar',
+            'max_computer_sync': 0,
+            'time_computer_sync': '1m',
             'verify_attrib': ['memberof', 'cn'],
             'write_attrib': ['extensionattribute1', 'extensionattribute2'],
             'match': 'like|exactly',
@@ -223,6 +227,22 @@ def new_config(path=(get_platform()['conf_default'])):
     }
     write_config(conf, path)
 
+
+def check_connection(ip, port):
+    """
+    Test connection of remote (ip) machine on (port)
+    :param ip: ip address or hostname of machine
+    :param port: tcp port
+    :return: Boolean
+    """
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        s.connect((ip, port))
+        s.shutdown(socket.SHUT_RDWR)
+        return True
+    except socket.error:
+        return False
+
 # endregion
 
 
@@ -242,6 +262,5 @@ if __name__ == '__main__':
     if not check_module('winrm'):
         print('Install winrm module: pip3 install pywinrm')
         exit(1)
-    new_config("/tmp/vmam.cfg")
 
 # endregion
