@@ -190,32 +190,33 @@ def new_config(path=(get_platform()['conf_default'])):
     """
     conf = {
         'LDAP': {
-            'servers': 'dc1,dc2',
+            'servers': ['dc1', 'dc2'],
+            'domain': 'foo.bar',
             'ssl': 'true|false',
             'tls': 'true|false',
             'bind_user': 'vlan_user',
             'bind_pwd': 'secret',
             'base_dn': 'DC=foo,DC=bar',
             'mac_user_base_dn': 'OU=mac-users,DC=foo,DC=bar',
-            'verify_attrib': 'memberof, cn',
-            'write_attrib': 'extensionattribute1,extensionattribute2',
+            'verify_attrib': ['memberof', 'cn'],
+            'write_attrib': ['extensionattribute1', 'extensionattribute2'],
             'match': 'like|exactly',
-            'add_group_type': 'user, computer',
-            'other_group': 'second_grp,third_grp'
+            'add_group_type': ['user', 'computer'],
+            'other_group': ['second_grp', 'third_grp']
         },
         'VMAM': {
             'mac_format': 'none|hypen|colon|dot',
             'soft_deletion': 'true|false',
-            'filter_exclude': ['list'],
+            'filter_exclude': ['list1', 'list2'],
             'log': get_platform()['log_default'],
-            'user_match_id': [{
-                'value1': '100',
-                'value2': '101'
-            }],
-            'vlan_group_id': [{
-                '100': 'group1',
-                '101': 'group2'
-            }],
+            'user_match_id': {
+                'value1': 100,
+                'value2': 101
+            },
+            'vlan_group_id': {
+                100: 'group1',
+                101: 'group2'
+            },
             'winrm_user': 'admin',
             'winrm_pwd': 'secret'
         }
