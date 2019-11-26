@@ -124,7 +124,10 @@ def check_module(module):
     """
     This function checks if a module is installed.
     :param module: The name of the module you want to check
-    :return: boolean
+    :return: Boolean
+    ---
+    >>>check_module('os')
+    True
     """
     return module in sys.modules
 
@@ -148,6 +151,9 @@ def read_config(path):
     Open YAML config file
     :param path: Path of config file
     :return: Python object
+    ---
+    >>>cfg = read_config('/tmp/vmam.yml')
+    >>>print(cfg)
     """
     with open('{0}'.format(path)) as file:
         return yaml.full_load(file)
@@ -159,6 +165,8 @@ def write_config(obj, path):
     :param obj: Python object that will be converted to YAML
     :param path: Path of config file
     :return: None
+    ---
+    >>>write_config(obj, '/tmp/vmam.yml')
     """
     with open('{0}'.format(path), 'w') as file:
         yaml.dump(obj, file)
@@ -168,6 +176,9 @@ def get_platform():
     """
     Get a platform (OS info)
     :return: Platform info dictionary
+    ---
+    >>>p = get_platform()
+    >>>print(p)
     """
     # Create os info object
     os_info = {}
@@ -188,6 +199,8 @@ def new_config(path=(get_platform()['conf_default'])):
     Create a new vmam config file (YAML)
     :param path: Path of config file
     :return: None
+    ---
+    >>>new_config('/tmp/vmam.yml')
     """
     conf = {
         'LDAP': {
@@ -234,6 +247,9 @@ def check_connection(ip, port):
     :param ip: ip address or hostname of machine
     :param port: tcp port
     :return: Boolean
+    ---
+    >>>check_connection('localhost', 80)
+    True
     """
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
