@@ -148,8 +148,8 @@ import winrm
 
 def read_config(path):
     """
-    Open YAML config file
-    :param path: Path of config file
+    Open YAML configuration file
+    :param path: Path of configuration file
     :return: Python object
     ---
     >>>cfg = read_config('/tmp/vmam.yml')
@@ -161,9 +161,9 @@ def read_config(path):
 
 def write_config(obj, path):
     """
-    Write YAML config file
+    Write YAML configuration file
     :param obj: Python object that will be converted to YAML
-    :param path: Path of config file
+    :param path: Path of configuration file
     :return: None
     ---
     >>>write_config(obj, '/tmp/vmam.yml')
@@ -259,6 +259,57 @@ def check_connection(ip, port):
     except socket.error:
         return False
 
+
+def check_config(path):
+    """
+    Check YAML configuration file
+    :param path: Path of configuration file
+    :return: Boolean
+    ---
+    >>>cfg = check_config('/tmp/vmam.yml')
+    True
+    """
+    # Check exists configuration file
+    assert os.path.exists(path), 'Configuration file not exists: {0}'.format(path)
+    # Read the config file
+    config = read_config(path)
+    # Check the two principal configuration: LDAP and VMAM
+    assert 'LDAP' in config, 'Key "LDAP" is required!'
+    assert 'VMAM' in config, 'Key "VMAM" is required!'
+    assert len(config.keys()) == 2, 'The principal keys of configuration file are two: "LDAP" and "VMAM"!'
+    # Now, check mandatory fields of LDAP section
+    assert ('servers' in config['LDAP'] and len(config['LDAP']['servers']) > 0), 'Required LDAP:servers: field!'
+    assert ('domain' in config['LDAP'] and config['LDAP']['domain']), 'Required LDAP:domain: field!'
+    assert ('bind_user' in config['LDAP'] and config['LDAP']['bind_user']), 'Required LDAP:bind_user: field!'
+    assert ('bind_pwd' in config['LDAP'] and config['LDAP']['bind_pwd']), 'Required LDAP:bind_pwd: field!'
+    assert ('user_base_dn' in config['LDAP'] and config['LDAP']['user_base_dn']), 'Required LDAP:user_base_dn: field!'
+    assert ('computer_base_dn' in config['LDAP'] and
+            config['LDAP']['computer_base_dn']), 'Required LDAP:computer_base_dn: field!'
+    assert ('mac_user_base_dn' in config['LDAP'] and
+            config['LDAP']['mac_user_base_dn']), 'Required LDAP:mac_user_base_dn: field!'
+    assert ('verify_attrib' in config['LDAP'] and
+            len(config['LDAP']['verify_attrib']) > 0), 'Required LDAP:verify_attrib: field!'
+    assert ('match' in config['LDAP'] and config['LDAP']['match']), 'Required LDAP:match: field!'
+    assert ('add_group_type' in config['LDAP'] and
+            len(config['LDAP']['add_group_type']) > 0), 'Required LDAP:add_group_type: field!'
+    # Now, check mandatory fields of VMAM section
+    assert ('mac_format' in config['VMAM'] and config['VMAM']['mac_format']), 'Required VMAM:mac_format: field!'
+    assert ('soft_deletion' in config['VMAM'] and
+            config['VMAM']['soft_deletion']), 'Required VMAM:soft_deletion: field!'
+    assert ('user_match_id' in config['VMAM'] and
+            len(config['VMAM']['user_match_id'].keys()) > 0), 'Required VMAM:user_match_id: field!'
+    assert ('vlan_group_id' in config['VMAM'] and
+            len(config['VMAM']['vlan_group_id'].keys()) > 0), 'Required VMAM:vlan_group_id: field!'
+    # Check if value of user_match_id corresponding to keys of vlan_group_id
+    for k, v in config['VMAM']['user_match_id'].items():
+        assert config['VMAM']['vlan_group_id'].get(v), 'Theres is no correspondence between the key {0} ' \
+                                                       'in vlan_group_id and the key {1} in user_match_id!'.format(v, k)
+    assert ('winrm_user' in config['VMAM'] and config['VMAM']['winrm_user']), 'Required VMAM:winrm_user: field!'
+    assert ('winrm_pwd' in config['VMAM'] and config['VMAM']['winrm_pwd']), 'Required VMAM:winrm_pwd: field!'
+    # Now, return ok (True)
+    return True
+
+
 # endregion
 
 
@@ -278,5 +329,7 @@ if __name__ == '__main__':
     if not check_module('winrm'):
         print('Install winrm module: pip3 install pywinrm')
         exit(1)
+
+    check_config('/tmp/vmam.yml')
 
 # endregion
