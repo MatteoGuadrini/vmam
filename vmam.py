@@ -112,6 +112,7 @@ import os
 import sys
 import yaml
 import socket
+import argparse
 import platform
 
 
@@ -310,6 +311,34 @@ def check_config(path):
     return True
 
 
+def parse_arguments():
+    """
+    Function that captures the parameters and the arguments in the command line
+    :return: Parser object
+    ---
+    >>>option = parse_arguments()
+    >>>print(option)
+    """
+    # Create a common parser
+    common_parser = argparse.ArgumentParser(add_help=False)
+    common_parser.add_argument('--verbose', '-v', help='enable verbosity, for debugging process.',
+                               dest='verbose', action='store_true')
+    # Create a principal parser
+    parser_object = argparse.ArgumentParser(prog='vmam', description='VLAN Mac-address Authentication Manager',
+                                            parents=[common_parser])
+    # Create sub_parser "action"
+    action_parser = parser_object.add_subparsers(title='action', description='Valid action',
+                                                 help='available actions for vmam command', dest='action')
+    # config session
+    config_parser = action_parser.add_parser('config', help='vmam configuration options', parents=[common_parser])
+    group_config = config_parser.add_argument_group(title='configuration')
+    group_config_mutually = group_config.add_mutually_exclusive_group()
+    group_config_mutually.add_argument('--new', '-n', help='generate new configuration file', dest='new_conf',
+                                       action='store_true')
+    group_config_mutually.add_argument('--get-cmd', '-g', help='get information for a radius server and switch/router.',
+                                       dest='get_conf', action='store_true')
+    return parser_object
+
 # endregion
 
 
@@ -330,6 +359,8 @@ if __name__ == '__main__':
         print('Install winrm module: pip3 install pywinrm')
         exit(1)
 
-    check_config('/tmp/vmam.yml')
+    option = parse_arguments()
+    args = option.parse_args()
+
 
 # endregion
