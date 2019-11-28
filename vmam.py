@@ -334,10 +334,20 @@ def parse_arguments():
     group_config = config_parser.add_argument_group(title='configuration')
     group_config_mutually = group_config.add_mutually_exclusive_group()
     group_config_mutually.add_argument('--new', '-n', help='generate new configuration file', dest='new_conf',
-                                       action='store_true')
+                                       action='store', nargs='?', default=get_platform()['conf_default'],
+                                       metavar='CONF_FILE')
     group_config_mutually.add_argument('--get-cmd', '-g', help='get information for a radius server and switch/router.',
                                        dest='get_conf', action='store_true')
+    # start session
+    start_parser = action_parser.add_parser('start', help='vmam automatic options', parents=[common_parser])
+    group_start = start_parser.add_argument_group(title='automatic start')
+    group_start.add_argument('--config-file', '-c', help='parse configuration file', dest='conf', action='store',
+                             nargs='?', default=get_platform()['conf_default'], metavar='CONF_FILE')
+    group_start.add_argument('--daemon', '-d', help='start automatic process as a daemon', dest='daemon',
+                             action='store_true')
+    # Return parser object
     return parser_object
+
 
 # endregion
 
