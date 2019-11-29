@@ -364,6 +364,24 @@ def parse_arguments():
     return parser_object
 
 
+def connect_ldap(server, *, ssl, tls):
+    """
+    Connect to LDAP server (SYNC mode)
+    :param server: LDAP server
+    :param ssl: If True, set port to 636
+    :param tls: Use TLS connection
+    :return: LDAP connection object
+    ---
+    >>>conn = connect_ldap('dc1.foo.bar', ssl=True, tls=False)
+    >>>print(conn)
+    """
+    # Check ssl connection
+    port = 636 if ssl else 389
+    # Start connection to LDAP server
+    server_connection = ldap3.Server(server, port=port, use_ssl=tls)
+    return server_connection
+
+
 # endregion
 
 
@@ -384,6 +402,7 @@ if __name__ == '__main__':
         print('Install winrm module: pip3 install pywinrm')
         exit(1)
 
+    # Parse arguments
     option = parse_arguments()
     args = option.parse_args()
 
