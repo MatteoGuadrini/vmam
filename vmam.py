@@ -112,6 +112,7 @@ import os
 import sys
 import yaml
 import socket
+import argparse
 import platform
 
 
@@ -124,7 +125,10 @@ def check_module(module):
     """
     This function checks if a module is installed.
     :param module: The name of the module you want to check
-    :return: boolean
+    :return: Boolean
+    ---
+    >>>check_module('os')
+    True
     """
     return module in sys.modules
 
@@ -145,9 +149,12 @@ import winrm
 
 def read_config(path):
     """
-    Open YAML config file
-    :param path: Path of config file
+    Open YAML configuration file
+    :param path: Path of configuration file
     :return: Python object
+    ---
+    >>>cfg = read_config('/tmp/vmam.yml')
+    >>>print(cfg)
     """
     with open('{0}'.format(path)) as file:
         return yaml.full_load(file)
@@ -155,10 +162,12 @@ def read_config(path):
 
 def write_config(obj, path):
     """
-    Write YAML config file
+    Write YAML configuration file
     :param obj: Python object that will be converted to YAML
-    :param path: Path of config file
+    :param path: Path of configuration file
     :return: None
+    ---
+    >>>write_config(obj, '/tmp/vmam.yml')
     """
     with open('{0}'.format(path), 'w') as file:
         yaml.dump(obj, file)
@@ -168,6 +177,9 @@ def get_platform():
     """
     Get a platform (OS info)
     :return: Platform info dictionary
+    ---
+    >>>p = get_platform()
+    >>>print(p)
     """
     # Create os info object
     os_info = {}
@@ -188,6 +200,8 @@ def new_config(path=(get_platform()['conf_default'])):
     Create a new vmam config file (YAML)
     :param path: Path of config file
     :return: None
+    ---
+    >>>new_config('/tmp/vmam.yml')
     """
     conf = {
         'LDAP': {
@@ -234,6 +248,9 @@ def check_connection(ip, port):
     :param ip: ip address or hostname of machine
     :param port: tcp port
     :return: Boolean
+    ---
+    >>>check_connection('localhost', 80)
+    True
     """
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
@@ -242,6 +259,128 @@ def check_connection(ip, port):
         return True
     except socket.error:
         return False
+
+
+def check_config(path):
+    """
+    Check YAML configuration file
+    :param path: Path of configuration file
+    :return: Boolean
+    ---
+    >>>cfg = check_config('/tmp/vmam.yml')
+    True
+    """
+    # Check exists configuration file
+    assert os.path.exists(path), 'Configuration file not exists: {0}'.format(path)
+    # Read the config file
+    config = read_config(path)
+    # Check the two principal configuration: LDAP and VMAM
+    assert 'LDAP' in config, 'Key "LDAP" is required!'
+    assert 'VMAM' in config, 'Key "VMAM" is required!'
+    assert len(config.keys()) == 2, 'The principal keys of configuration file are two: "LDAP" and "VMAM"!'
+    # Now, check mandatory fields of LDAP section
+    assert ('servers' in config['LDAP'] and len(config['LDAP']['servers']) > 0), 'Required LDAP:servers: field!'
+    assert ('domain' in config['LDAP'] and config['LDAP']['domain']), 'Required LDAP:domain: field!'
+    assert ('bind_user' in config['LDAP'] and config['LDAP']['bind_user']), 'Required LDAP:bind_user: field!'
+    assert ('bind_pwd' in config['LDAP'] and config['LDAP']['bind_pwd']), 'Required LDAP:bind_pwd: field!'
+    assert ('user_base_dn' in config['LDAP'] and config['LDAP']['user_base_dn']), 'Required LDAP:user_base_dn: field!'
+    assert ('computer_base_dn' in config['LDAP'] and
+            config['LDAP']['computer_base_dn']), 'Required LDAP:computer_base_dn: field!'
+    assert ('mac_user_base_dn' in config['LDAP'] and
+            config['LDAP']['mac_user_base_dn']), 'Required LDAP:mac_user_base_dn: field!'
+    assert ('verify_attrib' in config['LDAP'] and
+            len(config['LDAP']['verify_attrib']) > 0), 'Required LDAP:verify_attrib: field!'
+    assert ('match' in config['LDAP'] and config['LDAP']['match']), 'Required LDAP:match: field!'
+    assert ('add_group_type' in config['LDAP'] and
+            len(config['LDAP']['add_group_type']) > 0), 'Required LDAP:add_group_type: field!'
+    # Now, check mandatory fields of VMAM section
+    assert ('mac_format' in config['VMAM'] and config['VMAM']['mac_format']), 'Required VMAM:mac_format: field!'
+    assert ('soft_deletion' in config['VMAM'] and
+            config['VMAM']['soft_deletion']), 'Required VMAM:soft_deletion: field!'
+    assert ('user_match_id' in config['VMAM'] and
+            len(config['VMAM']['user_match_id'].keys()) > 0), 'Required VMAM:user_match_id: field!'
+    assert ('vlan_group_id' in config['VMAM'] and
+            len(config['VMAM']['vlan_group_id'].keys()) > 0), 'Required VMAM:vlan_group_id: field!'
+    # Check if value of user_match_id corresponding to keys of vlan_group_id
+    for k, v in config['VMAM']['user_match_id'].items():
+        assert config['VMAM']['vlan_group_id'].get(v), 'Theres is no correspondence between the key {0} ' \
+                                                       'in vlan_group_id and the key {1} in user_match_id!'.format(v, k)
+    assert ('winrm_user' in config['VMAM'] and config['VMAM']['winrm_user']), 'Required VMAM:winrm_user: field!'
+    assert ('winrm_pwd' in config['VMAM'] and config['VMAM']['winrm_pwd']), 'Required VMAM:winrm_pwd: field!'
+    # Now, return ok (True)
+    return True
+
+
+def parse_arguments():
+    """
+    Function that captures the parameters and the arguments in the command line
+    :return: Parser object
+    ---
+    >>>option = parse_arguments()
+    >>>print(option.parse_args())
+    """
+    # Create a common parser
+    common_parser = argparse.ArgumentParser(add_help=False)
+    common_parser.add_argument('--verbose', '-v', help='enable verbosity, for debugging process.',
+                               dest='verbose', action='store_true')
+    # Create a principal parser
+    parser_object = argparse.ArgumentParser(prog='vmam', description='VLAN Mac-address Authentication Manager',
+                                            parents=[common_parser])
+    # Create sub_parser "action"
+    action_parser = parser_object.add_subparsers(title='action', description='valid action',
+                                                 help='available actions for vmam command', dest='action')
+    # config session
+    config_parser = action_parser.add_parser('config', help='vmam configuration options', parents=[common_parser])
+    group_config = config_parser.add_argument_group(title='configuration')
+    group_config_mutually = group_config.add_mutually_exclusive_group(required=True)
+    group_config_mutually.add_argument('--new', '-n', help='generate new configuration file', dest='new_conf',
+                                       action='store', nargs='?', default=get_platform()['conf_default'],
+                                       metavar='CONF_FILE')
+    group_config_mutually.add_argument('--get-cmd', '-g', help='get information for a radius server and switch/router.',
+                                       dest='get_conf', action='store_true')
+    # start session
+    start_parser = action_parser.add_parser('start', help='vmam automatic process options', parents=[common_parser])
+    group_start = start_parser.add_argument_group(title='automatic options')
+    group_start.add_argument('--config-file', '-c', help='parse configuration file', dest='conf', action='store',
+                             nargs='?', default=get_platform()['conf_default'], metavar='CONF_FILE')
+    group_start.add_argument('--daemon', '-d', help='start automatic process as a daemon', dest='daemon',
+                             action='store_true')
+    # mac session
+    mac_parser = action_parser.add_parser('mac', help='vmam manual process options', parents=[common_parser])
+    group_mac = mac_parser.add_argument_group(title='manual options')
+    group_mac_mutually = group_mac.add_mutually_exclusive_group(required=True)
+    group_mac_mutually.add_argument('--add', '-a', help='add mac-address to LDAP server', dest='add', action='store',
+                                    nargs=1, metavar='MAC_ADDR')
+    group_mac_mutually.add_argument('--remove', '-r', help='remove mac-address to LDAP server', dest='remove',
+                                    action='store', nargs=1, metavar='MAC_ADDR')
+    group_mac_mutually.add_argument('--disable', '-d', help='disable mac-address to LDAP server', dest='disable',
+                                    action='store', nargs=1, metavar='MAC_ADDR')
+    group_mac.add_argument('--config-file', '-c', help='parse configuration file', dest='conf', action='store',
+                           nargs='?', default=get_platform()['conf_default'], metavar='CONF_FILE')
+    group_mac.add_argument('--force', '-f', help='force action', dest='force', action='store_true')
+    group_mac.add_argument('--vlan-id', '-i', help='vlan-id number', dest='vlanid', action='store',
+                           nargs=1, metavar='VLAN_ID', required=True)
+    # Return parser object
+    return parser_object
+
+
+def connect_ldap(server, *, ssl, tls):
+    """
+    Connect to LDAP server (SYNC mode)
+    :param server: LDAP server
+    :param ssl: If True, set port to 636
+    :param tls: Use TLS connection
+    :return: LDAP connection object
+    ---
+    >>>conn = connect_ldap('dc1.foo.bar', ssl=True, tls=False)
+    >>>print(conn)
+    """
+    # Check ssl connection
+    port = 636 if ssl else 389
+    # Start connection to LDAP server
+    server_connection = ldap3.Server(server, port=port, use_ssl=tls)
+    return server_connection
+
 
 # endregion
 
@@ -262,5 +401,9 @@ if __name__ == '__main__':
     if not check_module('winrm'):
         print('Install winrm module: pip3 install pywinrm')
         exit(1)
+
+    # Parse arguments
+    option = parse_arguments()
+    args = option.parse_args()
 
 # endregion
