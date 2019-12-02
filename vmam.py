@@ -381,7 +381,7 @@ def connect_ldap(server, *, ssl=False):
     return server_connection
 
 
-def bind_ldap(server, user, password, *, tls):
+def bind_ldap(server, user, password, *, tls=False):
     """
     Bind with user a LDAP connection
     :param server: LDAP connection object
@@ -390,19 +390,33 @@ def bind_ldap(server, user, password, *, tls):
     :param tls: if True, start tls connection
     :return: LDAP bind object
     ---
-    >>>conn = connect_ldap('dc1.foo.bar', ssl=True)
+    >>>conn = connect_ldap('dc1.foo.bar')
     >>>bind = bind_ldap(conn, r'domain\\user', 'password', tls=True)
     >>>print(bind)
     """
+    auto_bind = ldap3.AUTO_BIND_TLS_BEFORE_BIND if tls else ldap3.AUTO_BIND_NONE
+    # Create a bind connection with user and password
     bind_connection = ldap3.Connection(server, user='{0}'.format(user), password='{0}'.format(password),
-                                       auto_bind=ldap3.AUTO_BIND_TLS_BEFORE_BIND)
-    if tls:
-        bind_connection.start_tls()
+                                       auto_bind=auto_bind)
+    # Check LDAP bind connection
     if bind_connection.bind():
         return bind_connection
     else:
         print('Error in bind:', bind_connection.result)
 
+
+def unbind_ldap(bind_object):
+    """
+    Unbind LDAP connection
+    :param bind_object: LDAP bind object
+    :return: None
+    ---
+    >>>conn = connect_ldap('dc1.foo.bar', ssl=True)
+    >>>bind = bind_ldap(conn, r'domain\\user', 'password', tls=True)
+    >>>bind.unbind()
+    """
+    # Disconnect LDAP server
+    bind_object.unbind()
 
 # endregion
 
