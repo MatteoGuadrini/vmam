@@ -364,22 +364,44 @@ def parse_arguments():
     return parser_object
 
 
-def connect_ldap(server, *, ssl, tls):
+def connect_ldap(server, *, ssl=False):
     """
     Connect to LDAP server (SYNC mode)
     :param server: LDAP server
-    :param ssl: If True, set port to 636
-    :param tls: Use TLS connection
+    :param ssl: If True, set port to 636 else 389
     :return: LDAP connection object
     ---
-    >>>conn = connect_ldap('dc1.foo.bar', ssl=True, tls=False)
+    >>>conn = connect_ldap('dc1.foo.bar', ssl=True)
     >>>print(conn)
     """
     # Check ssl connection
     port = 636 if ssl else 389
     # Start connection to LDAP server
-    server_connection = ldap3.Server(server, port=port, use_ssl=tls)
+    server_connection = ldap3.Server(server, get_info=ldap3.ALL, port=port, use_ssl=ssl)
     return server_connection
+
+
+def bind_ldap(server, user, password, *, tls):
+    """
+    Bind with user a LDAP connection
+    :param server: LDAP connection object
+    :param user: user used for bind
+    :param password: password of user
+    :param tls: if True, start tls connection
+    :return: LDAP bind object
+    ---
+    >>>conn = connect_ldap('dc1.foo.bar', ssl=True)
+    >>>bind = bind_ldap(conn, r'domain\\user', 'password', tls=True)
+    >>>print(bind)
+    """
+    bind_connection = ldap3.Connection(server, user='{0}'.format(user), password='{0}'.format(password),
+                                       auto_bind=ldap3.AUTO_BIND_TLS_BEFORE_BIND)
+    if tls:
+        bind_connection.start_tls()
+    if bind_connection.bind():
+        return bind_connection
+    else:
+        print('Error in bind:', bind_connection.result)
 
 
 # endregion
