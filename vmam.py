@@ -411,12 +411,39 @@ def unbind_ldap(bind_object):
     :param bind_object: LDAP bind object
     :return: None
     ---
-    >>>conn = connect_ldap('dc1.foo.bar', ssl=True)
+    >>>conn = connect_ldap('dc1.foo.bar')
     >>>bind = bind_ldap(conn, r'domain\\user', 'password', tls=True)
     >>>bind.unbind()
     """
     # Disconnect LDAP server
     bind_object.unbind()
+
+
+def query_ldap(bind_object, base_search, *attributes, **filters):
+    """
+    :param bind_object: LDAP bind object
+    :param base_search: distinguishedName of LDAP base search
+    :param attributes: list of returning LDAP attributes
+    :param filters: dictionary of ldap query
+    :return: query result list
+    ---
+    >>>conn = connect_ldap('dc1.foo.bar')
+    >>>bind = bind_ldap(conn, r'domain\\user', 'password', tls=True)
+    >>>ret = query_ldap(bind, 'dc=foo,dc=bar', 'sn', 'givenName', 'samAccountName', objectClass='person', samAccountName='person1')
+    >>>print(ret)
+    """
+    # Init query list
+    query = ['(&']
+    # Build query
+    for key, value in filters.items():
+        query.append("({0}={1})".format(key, value))
+    # Close query
+    query.append(')')
+    # Query!
+    if bind_object.search(search_base=base_search, search_filter=''.join(query), attributes=attributes,
+                          search_scope=ldap3.SUBTREE):
+        return bind_object.response
+
 
 # endregion
 
