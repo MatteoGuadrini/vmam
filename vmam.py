@@ -114,6 +114,7 @@ import yaml
 import socket
 import argparse
 import platform
+import datetime
 
 
 # endregion
@@ -419,7 +420,7 @@ def unbind_ldap(bind_object):
     bind_object.unbind()
 
 
-def query_ldap(bind_object, base_search, *attributes, **filters):
+def query_ldap(bind_object, base_search, attributes, **filters):
     """
     :param bind_object: LDAP bind object
     :param base_search: distinguishedName of LDAP base search
@@ -429,7 +430,7 @@ def query_ldap(bind_object, base_search, *attributes, **filters):
     ---
     >>>conn = connect_ldap('dc1.foo.bar')
     >>>bind = bind_ldap(conn, r'domain\\user', 'password', tls=True)
-    >>>ret = query_ldap(bind, 'dc=foo,dc=bar', 'sn', 'givenName', 'samAccountName', objectClass='person', samAccountName='person1')
+    >>>ret = query_ldap(bind, 'dc=foo,dc=bar', ['sn', 'givenName', 'samAccountName'], objectClass='person', samAccountName='person1')
     >>>print(ret)
     """
     # Init query list
@@ -443,6 +444,20 @@ def query_ldap(bind_object, base_search, *attributes, **filters):
     if bind_object.search(search_base=base_search, search_filter=''.join(query), attributes=attributes,
                           search_scope=ldap3.SUBTREE):
         return bind_object.response
+
+
+def filetime_to_datetime(filetime):
+    """
+    Convert MS filetime LDAP to datetime
+    :param filetime: filetime number (nanoseconds)
+    :return: datetime object
+    ---
+    >>>dt = filetime_to_datetime(132130209369676516)
+    >>>print(dt)
+    """
+    epoch_as_filetime = 116444736000000000  # January 1, 1970 as MS filetime
+    us = (filetime - epoch_as_filetime) // 10
+    return datetime.datetime(1970, 1, 1) + datetime.timedelta(microseconds=us)
 
 
 # endregion
@@ -468,5 +483,7 @@ if __name__ == '__main__':
     # Parse arguments
     option = parse_arguments()
     args = option.parse_args()
+
+    print(filetime_to_datetime(132199888490943648))
 
 # endregion
