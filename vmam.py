@@ -430,7 +430,7 @@ def query_ldap(bind_object, base_search, attributes, **filters):
     ---
     >>>conn = connect_ldap('dc1.foo.bar')
     >>>bind = bind_ldap(conn, r'domain\\user', 'password', tls=True)
-    >>>ret = query_ldap(bind, 'dc=foo,dc=bar', ['sn', 'givenName', 'samAccountName'], objectClass='person', samAccountName='person1')
+    >>>ret = query_ldap(bind, 'dc=foo,dc=bar', ['sn', 'givenName'], objectClass='person', samAccountName='person1')
     >>>print(ret)
     """
     # Init query list
@@ -475,6 +475,24 @@ def datetime_to_filetime(date_time):
     filetime = epoch_as_filetime + (int(date_time.timestamp())) * 10000000
     return filetime + (date_time.microsecond * 10)
 
+
+def get_time_sync(timedelta):
+    """
+    It takes the date for synchronization
+    :param timedelta: Time difference to subtract (string: 1s, 2m, 3h, 4d, 5w, 6M, 7y)
+    :return: datetime object
+    ---
+    >>>td = get_time_sync('1d')
+    >>>print(td)
+    """
+    # Dictionary of units
+    units = {"s": "seconds", "m": "minutes", "h": "hours", "d": "days", "w": "weeks", "M": "months", "y": "years"}
+    # Extract info of timedelta
+    count = int(timedelta[:-1])
+    unit = units[timedelta[-1]]
+    delta = datetime.timedelta(**{unit: count})
+    # Calculate timedelta
+    return datetime.datetime.now() - delta
 
 
 # endregion
