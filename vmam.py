@@ -455,9 +455,26 @@ def filetime_to_datetime(filetime):
     >>>dt = filetime_to_datetime(132130209369676516)
     >>>print(dt)
     """
-    epoch_as_filetime = 116444736000000000  # January 1, 1970 as MS filetime
+    # January 1, 1970 as MS filetime
+    epoch_as_filetime = 116444736000000000
     us = (filetime - epoch_as_filetime) // 10
     return datetime.datetime(1970, 1, 1) + datetime.timedelta(microseconds=us)
+
+
+def datetime_to_filetime(date_time):
+    """
+    Convert datetime to LDAP MS filetime
+    :param date_time: datetime object
+    :return: filetime number
+    ---
+    >>>ft = datetime_to_filetime(datetime.datetime(2001, 1, 1))
+    >>>print(ft)
+    """
+    # January 1, 1970 as MS filetime
+    epoch_as_filetime = 116444736000000000
+    filetime = epoch_as_filetime + (int(date_time.timestamp())) * 10000000
+    return filetime + (date_time.microsecond * 10)
+
 
 
 # endregion
@@ -483,7 +500,5 @@ if __name__ == '__main__':
     # Parse arguments
     option = parse_arguments()
     args = option.parse_args()
-
-    print(filetime_to_datetime(132199888490943648))
 
 # endregion
