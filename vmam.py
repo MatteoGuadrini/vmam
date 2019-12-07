@@ -114,6 +114,7 @@ import yaml
 import socket
 import argparse
 import platform
+import datetime
 
 
 # endregion
@@ -364,22 +365,134 @@ def parse_arguments():
     return parser_object
 
 
-def connect_ldap(server, *, ssl, tls):
+def connect_ldap(server, *, ssl=False):
     """
     Connect to LDAP server (SYNC mode)
     :param server: LDAP server
-    :param ssl: If True, set port to 636
-    :param tls: Use TLS connection
+    :param ssl: If True, set port to 636 else 389
     :return: LDAP connection object
     ---
-    >>>conn = connect_ldap('dc1.foo.bar', ssl=True, tls=False)
+    >>>conn = connect_ldap('dc1.foo.bar', ssl=True)
     >>>print(conn)
     """
     # Check ssl connection
     port = 636 if ssl else 389
     # Start connection to LDAP server
-    server_connection = ldap3.Server(server, port=port, use_ssl=tls)
+    server_connection = ldap3.Server(server, get_info=ldap3.ALL, port=port, use_ssl=ssl)
     return server_connection
+
+
+def bind_ldap(server, user, password, *, tls=False):
+    """
+    Bind with user a LDAP connection
+    :param server: LDAP connection object
+    :param user: user used for bind
+    :param password: password of user
+    :param tls: if True, start tls connection
+    :return: LDAP bind object
+    ---
+    >>>conn = connect_ldap('dc1.foo.bar')
+    >>>bind = bind_ldap(conn, r'domain\\user', 'password', tls=True)
+    >>>print(bind)
+    """
+    auto_bind = ldap3.AUTO_BIND_TLS_BEFORE_BIND if tls else ldap3.AUTO_BIND_NONE
+    # Create a bind connection with user and password
+    bind_connection = ldap3.Connection(server, user='{0}'.format(user), password='{0}'.format(password),
+                                       auto_bind=auto_bind)
+    # Check LDAP bind connection
+    if bind_connection.bind():
+        return bind_connection
+    else:
+        print('Error in bind:', bind_connection.result)
+
+
+def unbind_ldap(bind_object):
+    """
+    Unbind LDAP connection
+    :param bind_object: LDAP bind object
+    :return: None
+    ---
+    >>>conn = connect_ldap('dc1.foo.bar')
+    >>>bind = bind_ldap(conn, r'domain\\user', 'password', tls=True)
+    >>>bind.unbind()
+    """
+    # Disconnect LDAP server
+    bind_object.unbind()
+
+
+def query_ldap(bind_object, base_search, attributes, **filters):
+    """
+    :param bind_object: LDAP bind object
+    :param base_search: distinguishedName of LDAP base search
+    :param attributes: list of returning LDAP attributes
+    :param filters: dictionary of ldap query
+    :return: query result list
+    ---
+    >>>conn = connect_ldap('dc1.foo.bar')
+    >>>bind = bind_ldap(conn, r'domain\\user', 'password', tls=True)
+    >>>ret = query_ldap(bind, 'dc=foo,dc=bar', ['sn', 'givenName'], objectClass='person', samAccountName='person1')
+    >>>print(ret)
+    """
+    # Init query list
+    query = ['(&']
+    # Build query
+    for key, value in filters.items():
+        query.append("({0}={1})".format(key, value))
+    # Close query
+    query.append(')')
+    # Query!
+    if bind_object.search(search_base=base_search, search_filter=''.join(query), attributes=attributes,
+                          search_scope=ldap3.SUBTREE):
+        return bind_object.response
+
+
+def filetime_to_datetime(filetime):
+    """
+    Convert MS filetime LDAP to datetime
+    :param filetime: filetime number (nanoseconds)
+    :return: datetime object
+    ---
+    >>>dt = filetime_to_datetime(132130209369676516)
+    >>>print(dt)
+    """
+    # January 1, 1970 as MS filetime
+    epoch_as_filetime = 116444736000000000
+    us = (filetime - epoch_as_filetime) // 10
+    return datetime.datetime(1970, 1, 1) + datetime.timedelta(microseconds=us)
+
+
+def datetime_to_filetime(date_time):
+    """
+    Convert datetime to LDAP MS filetime
+    :param date_time: datetime object
+    :return: filetime number
+    ---
+    >>>ft = datetime_to_filetime(datetime.datetime(2001, 1, 1))
+    >>>print(ft)
+    """
+    # January 1, 1970 as MS filetime
+    epoch_as_filetime = 116444736000000000
+    filetime = epoch_as_filetime + (int(date_time.timestamp())) * 10000000
+    return filetime + (date_time.microsecond * 10)
+
+
+def get_time_sync(timedelta):
+    """
+    It takes the date for synchronization
+    :param timedelta: Time difference to subtract (string: 1s, 2m, 3h, 4d, 5w, 6M, 7y)
+    :return: datetime object
+    ---
+    >>>td = get_time_sync('1d')
+    >>>print(td)
+    """
+    # Dictionary of units
+    units = {"s": "seconds", "m": "minutes", "h": "hours", "d": "days", "w": "weeks", "M": "months", "y": "years"}
+    # Extract info of timedelta
+    count = int(timedelta[:-1])
+    unit = units[timedelta[-1]]
+    delta = datetime.timedelta(**{unit: count})
+    # Calculate timedelta
+    return datetime.datetime.now() - delta
 
 
 # endregion
