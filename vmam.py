@@ -105,6 +105,15 @@ This is based on RFC-3579(https://tools.ietf.org/html/rfc3579#section-2.1).
 
         (c) Matteo Guadrini. All rights reserved.
 """
+# region Import dependencies
+
+
+import daemon
+import ldap3
+import winrm
+
+
+# endregion
 
 # region Imports
 
@@ -132,15 +141,6 @@ def check_module(module):
     True
     """
     return module in sys.modules
-
-
-# endregion
-
-# region Import dependencies
-
-import daemon
-import ldap3
-import winrm
 
 
 # endregion
@@ -493,6 +493,28 @@ def get_time_sync(timedelta):
     delta = datetime.timedelta(**{unit: count})
     # Calculate timedelta
     return datetime.datetime.now() - delta
+
+
+def connect_client(client, user, password):
+    """
+    Connect to client with WINRM protocol
+    :param client: hostname or ip address
+    :param user: username used for connection on client
+    :param password: password of user
+    :return: WINRM protocol object
+    ---
+    >>>cl = connect_client('host1', r'domain\\user', 'password')
+    >>>print(cl)
+    """
+    # Create protocol object
+    protocol = winrm.protocol.Protocol(
+        endpoint='http://{0}:5985/wsman'.format(client),
+        transport='ntlm',
+        username='{0}'.format(user),
+        password='{0}'.format(password),
+        server_cert_validation='ignore'
+    )
+    return protocol
 
 
 # endregion
