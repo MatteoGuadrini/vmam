@@ -517,6 +517,30 @@ def connect_client(client, user, password):
     return protocol
 
 
+def run_command(protocol, command):
+    """
+    Run command to client
+    :param protocol: WINRM protocol object
+    :param command: command to run on client
+    :return: Output of command
+    ---
+    >>>cl = connect_client('host1', r'domain\\user', 'password')
+    >>>cmd = run_command(cl, 'ipconfig /all')
+    >>>print(cmd)
+    """
+    # Open shell
+    shell = protocol.open_shell()
+    # Run command
+    command = protocol.run_command(shell, '{0}'.format(command))
+    # Get a standard output, standard error and status code
+    std_out, std_err, status_code = protocol.get_command_output(shell, command)
+    # Clean a shell and close
+    protocol.cleanup_command(shell, command)
+    protocol.close_shell(shell)
+    # return all
+    return std_out, std_err, status_code
+
+
 # endregion
 
 
