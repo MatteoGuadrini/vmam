@@ -112,7 +112,6 @@ import daemon
 import ldap3
 import winrm
 
-
 # endregion
 
 # region Imports
@@ -493,6 +492,31 @@ def get_time_sync(timedelta):
     delta = datetime.timedelta(**{unit: count})
     # Calculate timedelta
     return datetime.datetime.now() - delta
+
+
+def string_to_datetime(string):
+    """
+    Convert string date to datetime
+    :param string: Datetime in string format ('dd/mm/yyyy' or 'mm/dd/yyyy')
+    :return: Datetime object
+    ---
+    >>>dt = string_to_datetime('28/2/2019')
+    >>>print(dt)
+    """
+    # Try convert 'dd/mm/yyyy'
+    try:
+        date = datetime.datetime.strptime(string, '%d/%m/%Y')
+        # return date object
+        return date
+    except ValueError:
+        pass
+    # Try convert 'mm/dd/yyyy'
+    try:
+        date = datetime.datetime.strptime(string, '%m/%d/%Y')
+        # return date object
+        return date
+    except ValueError:
+        return False
 
 
 def connect_client(client, user, password):
