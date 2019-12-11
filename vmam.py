@@ -451,7 +451,7 @@ def new_user(bind_object, username, **attributes):
     :param bind_object: LDAP bind object
     :param username: distinguishedName of user
     :param attributes: Dictionary attributes
-    :return: None
+    :return: LDAP operation result
     ---
     >>>conn = connect_ldap('dc1.foo.bar')
     >>>bind = bind_ldap(conn, r'domain\\user', 'password', tls=True)
@@ -463,6 +463,30 @@ def new_user(bind_object, username, **attributes):
         ['top', 'person', 'organizationalPerson', 'user'],
         attributes
     )
+    return bind_object.result
+
+
+def set_user(bind_object, username, **attributes):
+    """
+    Modify an exists LDAP user
+    :param bind_object: LDAP bind object
+    :param username: distinguishedName of user
+    :param attributes: Dictionary attributes
+    :return: LDAP operation result
+    ---
+    >>>conn = connect_ldap('dc1.foo.bar')
+    >>>bind = bind_ldap(conn, r'domain\\user', 'password', tls=True)
+    >>>set_user(bind, 'CN=ex_user1,OU=User_ex,DC=foo,DC=bar', givenName='User 1', sn='Example')
+    """
+    # Convert value to tuple
+    for key, value in attributes.items():
+        attributes[key] = (ldap3.MODIFY_REPLACE, value)
+    # Modify user
+    bind_object.modify(
+        username,
+        attributes
+    )
+    return bind_object.result
 
 
 def filetime_to_datetime(filetime):
