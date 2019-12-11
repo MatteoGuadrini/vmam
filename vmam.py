@@ -445,6 +445,26 @@ def query_ldap(bind_object, base_search, attributes, **filters):
         return bind_object.response
 
 
+def new_user(bind_object, username, **attributes):
+    """
+    Create a new LDAP user
+    :param bind_object: LDAP bind object
+    :param username: distinguishedName of user
+    :param attributes: Dictionary attributes
+    :return: None
+    ---
+    >>>conn = connect_ldap('dc1.foo.bar')
+    >>>bind = bind_ldap(conn, r'domain\\user', 'password', tls=True)
+    >>>new_user(bind, 'CN=ex_user1,OU=User_ex,DC=foo,DC=bar', givenName='User 1', sn='Example')
+    """
+    # Create user
+    bind_object.add(
+        username,
+        ['top', 'person', 'organizationalPerson', 'user'],
+        attributes
+    )
+
+
 def filetime_to_datetime(filetime):
     """
     Convert MS filetime LDAP to datetime
