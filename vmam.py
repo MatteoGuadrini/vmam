@@ -457,14 +457,20 @@ def check_ldap_version(bind_object, base_search):
     >>>ret = check_ldap_version(bind, 'dc=foo,dc=bar')
     >>>print(ret)
     """
-    # Init query list
-    query = '(&(&(&(&(samAccountType=805306369)(primaryGroupId=516))(objectCategory=computer)(operatingSystem=*))))'
     # Query!
     try:
+        # MS-LDAP query
+        query = '(&(&(&(&(samAccountType=805306369)(primaryGroupId=516))(objectCategory=computer)(operatingSystem=*))))'
         bind_object.search(search_base=base_search, search_filter=query, search_scope=ldap3.SUBTREE)
         return 'MS-LDAP'
     except ldap3.core.exceptions.LDAPObjectClassError:
-        return 'LDAP'
+        try:
+            # Novell-LDAP query
+            query = '(objectClass=ncpServer)'
+            bind_object.search(search_base=base_search, search_filter=query, search_scope=ldap3.SUBTREE)
+            return 'N-LDAP'
+        except ldap3.core.exceptions.LDAPObjectClassError:
+            return 'LDAP'
 
 
 def new_user(bind_object, username, **attributes):
