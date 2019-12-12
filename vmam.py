@@ -511,6 +511,34 @@ def set_user(bind_object, username, **attributes):
     return bind_object.result
 
 
+def set_user_password(bind_object, username, password, *, ldap_version='LDAP'):
+    """
+    Set password to LDAP user
+    :param bind_object: LDAP bind object
+    :param username: distinguishedName of user
+    :param password: password to set of user
+    :param ldap_version: LDAP version (LDAP or MS-LDAP)
+    :return: None
+    >>>conn = connect_ldap('dc1.foo.bar')
+    >>>bind = bind_ldap(conn, r'domain\\user', 'password', tls=True)
+    >>>new_user(bind, 'CN=ex_user1,OU=User_ex,DC=foo,DC=bar', givenName='User 1', sn='Example')
+    >>>set_user_password(bind, 'CN=ex_user1,OU=User_ex,DC=foo,DC=bar', 'password', ldap_version='MS-LDAP')
+    >>>set_user(bind, 'CN=ex_user1,CN=Users,DC=office,DC=bol', pwdLastSet=-1, userAccountControl=66048)
+    """
+    # Set password
+    if ldap_version == 'LDAP':
+        bind_object.extend.StandardExtendedOperations.modify_password(username, new_password=password,
+                                                                      old_password=None)
+    elif ldap_version == 'MS-LDAP':
+        bind_object.extend.microsoft.modify_password(username, new_password=password, old_password=None)
+    elif ldap_version == 'N-LDAP':
+        bind_object.extend.NovellExtendedOperations.set_universal_password(username, new_password=password,
+                                                                           old_password=None)
+    else:
+        bind_object.extend.StandardExtendedOperations.modify_password(username, new_password=password,
+                                                                      old_password=None)
+
+
 def filetime_to_datetime(filetime):
     """
     Convert MS filetime LDAP to datetime
