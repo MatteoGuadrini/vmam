@@ -445,6 +445,28 @@ def query_ldap(bind_object, base_search, attributes, **filters):
         return bind_object.response
 
 
+def check_ldap_version(bind_object, base_search):
+    """
+    Determines the LDAP version
+    :param bind_object: LDAP bind object
+    :param base_search: distinguishedName of LDAP base search
+    :return: LDAP version
+    ---
+    >>>conn = connect_ldap('dc1.foo.bar')
+    >>>bind = bind_ldap(conn, r'domain\\user', 'password', tls=True)
+    >>>ret = check_ldap_version(bind, 'dc=foo,dc=bar')
+    >>>print(ret)
+    """
+    # Init query list
+    query = '(&(&(&(&(samAccountType=805306369)(primaryGroupId=516))(objectCategory=computer)(operatingSystem=*))))'
+    # Query!
+    try:
+        bind_object.search(search_base=base_search, search_filter=query, search_scope=ldap3.SUBTREE)
+        return 'MS-LDAP'
+    except ldap3.core.exceptions.LDAPObjectClassError:
+        return 'LDAP'
+
+
 def new_user(bind_object, username, **attributes):
     """
     Create a new LDAP user
