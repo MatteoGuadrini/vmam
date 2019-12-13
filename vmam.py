@@ -147,6 +147,15 @@ def check_module(module):
 # region Functions
 
 
+def printv(*messages):
+    """
+    Print verbose information
+    :param messages: List of messages
+    :return: String print on stdout
+    """
+    print("DEBUG:", *messages)
+
+
 def read_config(path):
     """
     Open YAML configuration file
