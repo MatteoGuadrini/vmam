@@ -105,6 +105,14 @@ This is based on RFC-3579(https://tools.ietf.org/html/rfc3579#section-2.1).
 
         (c) Matteo Guadrini. All rights reserved.
 """
+# region Import dependencies
+
+
+import daemon
+import ldap3
+import winrm
+
+# endregion
 
 # region Imports
 
@@ -136,16 +144,16 @@ def check_module(module):
 
 # endregion
 
-# region Import dependencies
-
-import daemon
-import ldap3
-import winrm
-
-
-# endregion
-
 # region Functions
+
+
+def printv(*messages):
+    """
+    Print verbose information
+    :param messages: List of messages
+    :return: String print on stdout
+    """
+    print("DEBUG:", *messages)
 
 
 def read_config(path):
@@ -446,6 +454,106 @@ def query_ldap(bind_object, base_search, attributes, **filters):
         return bind_object.response
 
 
+def check_ldap_version(bind_object, base_search):
+    """
+    Determines the LDAP version
+    :param bind_object: LDAP bind object
+    :param base_search: distinguishedName of LDAP base search
+    :return: LDAP version
+    ---
+    >>>conn = connect_ldap('dc1.foo.bar')
+    >>>bind = bind_ldap(conn, r'domain\\user', 'password', tls=True)
+    >>>ret = check_ldap_version(bind, 'dc=foo,dc=bar')
+    >>>print(ret)
+    """
+    # Query!
+    try:
+        # MS-LDAP query
+        query = '(&(&(&(&(samAccountType=805306369)(primaryGroupId=516))(objectCategory=computer)(operatingSystem=*))))'
+        bind_object.search(search_base=base_search, search_filter=query, search_scope=ldap3.SUBTREE)
+        return 'MS-LDAP'
+    except ldap3.core.exceptions.LDAPObjectClassError:
+        try:
+            # Novell-LDAP query
+            query = '(objectClass=ncpServer)'
+            bind_object.search(search_base=base_search, search_filter=query, search_scope=ldap3.SUBTREE)
+            return 'N-LDAP'
+        except ldap3.core.exceptions.LDAPObjectClassError:
+            return 'LDAP'
+
+
+def new_user(bind_object, username, **attributes):
+    """
+    Create a new LDAP user
+    :param bind_object: LDAP bind object
+    :param username: distinguishedName of user
+    :param attributes: Dictionary attributes
+    :return: LDAP operation result
+    ---
+    >>>conn = connect_ldap('dc1.foo.bar')
+    >>>bind = bind_ldap(conn, r'domain\\user', 'password', tls=True)
+    >>>new_user(bind, 'CN=ex_user1,OU=User_ex,DC=foo,DC=bar', givenName='User 1', sn='Example')
+    """
+    # Create user
+    bind_object.add(
+        username,
+        ['top', 'person', 'organizationalPerson', 'user'],
+        attributes
+    )
+    return bind_object.result
+
+
+def set_user(bind_object, username, **attributes):
+    """
+    Modify an exists LDAP user
+    :param bind_object: LDAP bind object
+    :param username: distinguishedName of user
+    :param attributes: Dictionary attributes
+    :return: LDAP operation result
+    ---
+    >>>conn = connect_ldap('dc1.foo.bar')
+    >>>bind = bind_ldap(conn, r'domain\\user', 'password', tls=True)
+    >>>set_user(bind, 'CN=ex_user1,OU=User_ex,DC=foo,DC=bar', givenName='User 1', sn='Example')
+    """
+    # Convert value to tuple
+    for key, value in attributes.items():
+        attributes[key] = (ldap3.MODIFY_REPLACE, value)
+    # Modify user
+    bind_object.modify(
+        username,
+        attributes
+    )
+    return bind_object.result
+
+
+def set_user_password(bind_object, username, password, *, ldap_version='LDAP'):
+    """
+    Set password to LDAP user
+    :param bind_object: LDAP bind object
+    :param username: distinguishedName of user
+    :param password: password to set of user
+    :param ldap_version: LDAP version (LDAP or MS-LDAP)
+    :return: None
+    >>>conn = connect_ldap('dc1.foo.bar')
+    >>>bind = bind_ldap(conn, r'domain\\user', 'password', tls=True)
+    >>>new_user(bind, 'CN=ex_user1,OU=User_ex,DC=foo,DC=bar', givenName='User 1', sn='Example')
+    >>>set_user_password(bind, 'CN=ex_user1,OU=User_ex,DC=foo,DC=bar', 'password', ldap_version='MS-LDAP')
+    >>>set_user(bind, 'CN=ex_user1,CN=Users,DC=office,DC=bol', pwdLastSet=-1, userAccountControl=66048)
+    """
+    # Set password
+    if ldap_version == 'LDAP':
+        bind_object.extend.StandardExtendedOperations.modify_password(username, new_password=password,
+                                                                      old_password=None)
+    elif ldap_version == 'MS-LDAP':
+        bind_object.extend.microsoft.modify_password(username, new_password=password, old_password=None)
+    elif ldap_version == 'N-LDAP':
+        bind_object.extend.NovellExtendedOperations.set_universal_password(username, new_password=password,
+                                                                           old_password=None)
+    else:
+        bind_object.extend.StandardExtendedOperations.modify_password(username, new_password=password,
+                                                                      old_password=None)
+
+
 def filetime_to_datetime(filetime):
     """
     Convert MS filetime LDAP to datetime
@@ -493,6 +601,77 @@ def get_time_sync(timedelta):
     delta = datetime.timedelta(**{unit: count})
     # Calculate timedelta
     return datetime.datetime.now() - delta
+
+
+def string_to_datetime(string):
+    """
+    Convert string date to datetime
+    :param string: Datetime in string format ('dd/mm/yyyy' or 'mm/dd/yyyy')
+    :return: Datetime object
+    ---
+    >>>dt = string_to_datetime('28/2/2019')
+    >>>print(dt)
+    """
+    # Try convert 'dd/mm/yyyy'
+    try:
+        date = datetime.datetime.strptime(string, '%d/%m/%Y')
+        # return date object
+        return date
+    except ValueError:
+        pass
+    # Try convert 'mm/dd/yyyy'
+    try:
+        date = datetime.datetime.strptime(string, '%m/%d/%Y')
+        # return date object
+        return date
+    except ValueError:
+        return False
+
+
+def connect_client(client, user, password):
+    """
+    Connect to client with WINRM protocol
+    :param client: hostname or ip address
+    :param user: username used for connection on client
+    :param password: password of user
+    :return: WINRM protocol object
+    ---
+    >>>cl = connect_client('host1', r'domain\\user', 'password')
+    >>>print(cl)
+    """
+    # Create protocol object
+    protocol = winrm.protocol.Protocol(
+        endpoint='http://{0}:5985/wsman'.format(client),
+        transport='ntlm',
+        username='{0}'.format(user),
+        password='{0}'.format(password),
+        server_cert_validation='ignore'
+    )
+    return protocol
+
+
+def run_command(protocol, command):
+    """
+    Run command to client
+    :param protocol: WINRM protocol object
+    :param command: command to run on client
+    :return: Output of command
+    ---
+    >>>cl = connect_client('host1', r'domain\\user', 'password')
+    >>>cmd = run_command(cl, 'ipconfig /all')
+    >>>print(cmd)
+    """
+    # Open shell
+    shell = protocol.open_shell()
+    # Run command
+    command = protocol.run_command(shell, '{0}'.format(command))
+    # Get a standard output, standard error and status code
+    std_out, std_err, status_code = protocol.get_command_output(shell, command)
+    # Clean a shell and close
+    protocol.cleanup_command(shell, command)
+    protocol.close_shell(shell)
+    # return all
+    return std_out, std_err, status_code
 
 
 # endregion
