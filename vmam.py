@@ -120,6 +120,7 @@ import os
 import sys
 import yaml
 import socket
+import logging
 import argparse
 import platform
 import datetime
@@ -152,8 +153,29 @@ def printv(*messages):
     Print verbose information
     :param messages: List of messages
     :return: String print on stdout
+    ---
+    >>>printv('Test','printv')
     """
     print("DEBUG:", *messages)
+
+
+def logwriter(logfile):
+    """
+    Logger object than write line in a log file
+    :param logfile: Path of logfile(.log)
+    :return: Logger object
+    ---
+    >>>wl = logwriter('test.log')
+    >>>wl.info('This is a test')
+    """
+    # Create logging object
+    _format = logging.Formatter('%(asctime)s %(levelname)-4s %(message)s')
+    handler = logging.FileHandler(logfile)
+    handler.setFormatter(_format)
+    logger = logging.getLogger(os.path.basename(__file__))
+    logger.setLevel(logging.INFO)
+    logger.addHandler(handler)
+    return logger
 
 
 def read_config(path):
