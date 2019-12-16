@@ -173,7 +173,7 @@ def logwriter(logfile):
     handler = logging.FileHandler(logfile)
     handler.setFormatter(_format)
     logger = logging.getLogger(os.path.basename(__file__))
-    logger.setLevel(logging.INFO)
+    logger.setLevel(logging.DEBUG)
     logger.addHandler(handler)
     return logger
 
