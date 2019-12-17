@@ -703,27 +703,33 @@ def run_command(protocol, command):
 
 if __name__ == '__main__':
 
+    def cli_check_module():
+        """
+        CLI function: Check if dependencies modules is installed
+        :return: Boolean
+        """
+        # List of dependencies modules
+        mods = ['daemon', 'ldap3', 'winrm']
+        # Check import dependencies
+        for mod in mods:
+            assert check_module(mod), 'Install "{0}" module with pip install.'.format(mod)
+
+
     def main():
         """
         Command line main process
         :return: None
         """
+        # region (1)
+        # process: command line parsing and check dependencies
+        # Check required modules
+        cli_check_module()
+        # Parse arguments
+        option = parse_arguments()
+        args = option.parse_args()
+        # endregion
 
-    # Check import dependencies
-    if not check_module('daemon'):
-        print('Install daemon module: pip3 install python-daemon')
-        exit(1)
 
-    if not check_module('ldap3'):
-        print('Install ldap3 module: pip3 install ldap3')
-        exit(1)
-
-    if not check_module('winrm'):
-        print('Install winrm module: pip3 install pywinrm')
-        exit(1)
-
-    # Parse arguments
-    option = parse_arguments()
-    args = option.parse_args()
+    main()
 
 # endregion
