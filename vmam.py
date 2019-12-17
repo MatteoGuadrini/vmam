@@ -703,6 +703,12 @@ def run_command(protocol, command):
 
 if __name__ == '__main__':
 
+    def main():
+        """
+        Command line main process
+        :return: None
+        """
+
     # Check import dependencies
     if not check_module('daemon'):
         print('Install daemon module: pip3 install python-daemon')
