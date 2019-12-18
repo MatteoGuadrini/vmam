@@ -178,6 +178,35 @@ def logwriter(logfile):
     return logger
 
 
+def confirm(message):
+    """
+    Confirm action
+    :param message: Question that expects a 'yes' or 'no' answer
+    :return: Boolean
+    ---
+    >>>if confirm('Please, respond'):
+    >>>    print('yep!')
+    """
+    # Question
+    question = message + ' [Y/n]: '
+
+    # Possible right answers
+    yes = ['yes', 'y', 'ye', '']
+    no = ['no', 'n']
+
+    # Validate answer
+    choice = input(question).lower()
+    while True:
+        if choice in yes:
+            return True
+        elif choice in no:
+            return False
+        # I do not understand
+        print("Please, respond with 'yes' or 'no'")
+        # Validate answer
+        choice = input(question).lower()
+
+
 def read_config(path):
     """
     Open YAML configuration file
