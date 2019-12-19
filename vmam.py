@@ -745,6 +745,21 @@ if __name__ == '__main__':
             assert check_module(mod), 'Install "{0}" module with pip install.'.format(mod)
 
 
+    def cli_select_action(action):
+        """
+        Select action
+        :param action: Sub-parser action
+        :return: action function
+        """
+        # Define action dictionary
+        actions = {
+            'config': 'Config action',
+            'mac': 'Manual action',
+            'start': 'Automatic action'
+        }
+        return actions.get(action, 'No action available')
+
+
     def main():
         """
         Command line main process
@@ -760,6 +775,8 @@ if __name__ == '__main__':
         # Check command line arguments
         if not args.action:
             option.print_help()
+        # Get action
+        cli_select_action(args.action)
         # endregion
 
 
