@@ -386,6 +386,7 @@ def parse_arguments():
     # Create a principal parser
     parser_object = argparse.ArgumentParser(prog='vmam', description='VLAN Mac-address Authentication Manager',
                                             parents=[common_parser])
+    parser_object.add_argument('--version', '-V', action='version', version='%(prog)s 0.1.0')
     # Create sub_parser "action"
     action_parser = parser_object.add_subparsers(title='action', description='valid action',
                                                  help='available actions for vmam command', dest='action')
@@ -756,6 +757,9 @@ if __name__ == '__main__':
         # Parse arguments
         option = parse_arguments()
         args = option.parse_args()
+        # Check command line arguments
+        if not args.action:
+            option.print_help()
         # endregion
 
 
