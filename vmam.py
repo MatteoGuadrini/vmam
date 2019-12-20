@@ -395,10 +395,11 @@ def parse_arguments():
     group_config = config_parser.add_argument_group(title='configuration')
     group_config_mutually = group_config.add_mutually_exclusive_group(required=True)
     group_config_mutually.add_argument('--new', '-n', help='generate new configuration file', dest='new_conf',
-                                       action='store', nargs='?', default=get_platform()['conf_default'],
+                                       action='store', nargs='?', const=(get_platform()['conf_default']),
                                        metavar='CONF_FILE')
     group_config_mutually.add_argument('--get-cmd', '-g', help='get information for a radius server and switch/router.',
-                                       dest='get_conf', action='store_true')
+                                       dest='get_conf', action='store', nargs='?',
+                                       const=(get_platform()['conf_default']), metavar='CONF_FILE')
     # start session
     start_parser = action_parser.add_parser('start', help='vmam automatic process options', parents=[common_parser])
     group_start = start_parser.add_argument_group(title='automatic options')
@@ -783,15 +784,65 @@ if __name__ == '__main__':
         if arguments.new_conf:
             # Create a new configuration file
             if not os.path.exists(arguments.new_conf):
-                new_config(arguments.new_conf)
+                try:
+                    new_config(arguments.new_conf)
+                except FileNotFoundError as err:
+                    print('I was unable to write the file: {0}'.format(err))
             else:
                 print('Configuration file exists: {0}.'.format(arguments.new_conf))
+                # Exists? Overwrite?
                 if confirm('Overwrite with a new one?'):
                     try:
                         os.remove(arguments.new_conf)
                         new_config(arguments.new_conf)
                     except OSError as err:
                         print('I was unable to overwrite the file: {0}'.format(err))
+        elif arguments.get_conf:
+            # Read configuration file
+            if os.path.exists(arguments.get_conf):
+                try:
+                    print("""
+                    NETWORK ARCHITECTURE
+
+                    +--------------------------+Spend credential+--------------------------+
+                    |                          +--------------->+                          |
+                    |          radius          |                |          ldap            |
+                    |                          +<---------------+                          |
+                    +--------------------------+ Return VLAN-ID +--------------------------+
+                               ^     |
+                        Send   |     |  Received
+                        MAC    |     |  VLAN-ID
+                               |     |
+                               |     v
+                    +--------------------------+
+                    |                          |
+                    |       switch/router      |
+                    |                          |
+                    +--------------------------+
+                               ^     |
+                      Send     |     |  Received
+                      request  |     |  VLAN
+                               |     v
+                            +-----------+
+                            |           |
+                            |           |
+                            |   client  |
+                            |           |
+                            |           |
+                            +-----------+
+
+                    LEGEND
+
+                    client: Windows/Linux/MacOSX/other
+                    switch/router: network appliance
+                    radius: freeradius/Microsoft radius
+                    ldap: Active Directory/389/FreeIPA/eDirectory/other LDAP server
+                                """)
+                except FileNotFoundError as err:
+                    print('I was unable to read the file: {0}'.format(err))
+                    exit(1)
+            else:
+                print('Configuration file not exists: {0}. See "vmam config --new" option.'.format(arguments.get_conf))
 
 
     def main():
