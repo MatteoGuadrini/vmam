@@ -753,11 +753,32 @@ if __name__ == '__main__':
         """
         # Define action dictionary
         actions = {
-            'config': 'Config action',
+            'config': cli_config,
             'mac': 'Manual action',
             'start': 'Automatic action'
         }
         return actions.get(action, 'No action available')
+
+
+    def cli_config(arguments):
+        """
+        Configuration process
+        :param arguments: Arguments list
+        :return: None
+        """
+        # Select new or get
+        if arguments.new_conf:
+            # Create a new configuration file
+            if not os.path.exists(arguments.new_conf):
+                new_config(arguments.new_conf)
+            else:
+                print('Configuration file exists: {0}.'.format(arguments.new_conf))
+                if confirm('Overwrite with a new one?'):
+                    try:
+                        os.remove(arguments.new_conf)
+                        new_config(arguments.new_conf)
+                    except OSError as err:
+                        print('I was unable to overwrite the file: {0}'.format(err))
 
 
     def main():
@@ -765,8 +786,6 @@ if __name__ == '__main__':
         Command line main process
         :return: None
         """
-        # region (1)
-        # process: command line parsing and check dependencies
         # Check required modules
         cli_check_module()
         # Parse arguments
@@ -775,9 +794,10 @@ if __name__ == '__main__':
         # Check command line arguments
         if not args.action:
             option.print_help()
+            exit(1)
         # Get action
-        cli_select_action(args.action)
-        # endregion
+        cli = cli_select_action(args.action)
+        cli(args)
 
 
     main()
