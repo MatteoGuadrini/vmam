@@ -120,6 +120,7 @@ import os
 import sys
 import yaml
 import socket
+import logging
 import argparse
 import platform
 import datetime
@@ -152,8 +153,58 @@ def printv(*messages):
     Print verbose information
     :param messages: List of messages
     :return: String print on stdout
+    ---
+    >>>printv('Test','printv')
     """
     print("DEBUG:", *messages)
+
+
+def logwriter(logfile):
+    """
+    Logger object than write line in a log file
+    :param logfile: Path of logfile(.log)
+    :return: Logger object
+    ---
+    >>>wl = logwriter('test.log')
+    >>>wl.info('This is a test')
+    """
+    # Create logging object
+    _format = logging.Formatter('%(asctime)s %(levelname)-4s %(message)s')
+    handler = logging.FileHandler(logfile)
+    handler.setFormatter(_format)
+    logger = logging.getLogger(os.path.basename(__file__))
+    logger.setLevel(logging.DEBUG)
+    logger.addHandler(handler)
+    return logger
+
+
+def confirm(message):
+    """
+    Confirm action
+    :param message: Question that expects a 'yes' or 'no' answer
+    :return: Boolean
+    ---
+    >>>if confirm('Please, respond'):
+    >>>    print('yep!')
+    """
+    # Question
+    question = message + ' [Y/n]: '
+
+    # Possible right answers
+    yes = ['yes', 'y', 'ye', '']
+    no = ['no', 'n']
+
+    # Validate answer
+    choice = input(question).lower()
+    while True:
+        if choice in yes:
+            return True
+        elif choice in no:
+            return False
+        # I do not understand
+        print("Please, respond with 'yes' or 'no'")
+        # Validate answer
+        choice = input(question).lower()
 
 
 def read_config(path):
@@ -335,6 +386,7 @@ def parse_arguments():
     # Create a principal parser
     parser_object = argparse.ArgumentParser(prog='vmam', description='VLAN Mac-address Authentication Manager',
                                             parents=[common_parser])
+    parser_object.add_argument('--version', '-V', action='version', version='%(prog)s 0.1.0')
     # Create sub_parser "action"
     action_parser = parser_object.add_subparsers(title='action', description='valid action',
                                                  help='available actions for vmam command', dest='action')
@@ -343,10 +395,11 @@ def parse_arguments():
     group_config = config_parser.add_argument_group(title='configuration')
     group_config_mutually = group_config.add_mutually_exclusive_group(required=True)
     group_config_mutually.add_argument('--new', '-n', help='generate new configuration file', dest='new_conf',
-                                       action='store', nargs='?', default=get_platform()['conf_default'],
+                                       action='store', nargs='?', const=(get_platform()['conf_default']),
                                        metavar='CONF_FILE')
     group_config_mutually.add_argument('--get-cmd', '-g', help='get information for a radius server and switch/router.',
-                                       dest='get_conf', action='store_true')
+                                       dest='get_conf', action='store', nargs='?',
+                                       const=(get_platform()['conf_default']), metavar='CONF_FILE')
     # start session
     start_parser = action_parser.add_parser('start', help='vmam automatic process options', parents=[common_parser])
     group_start = start_parser.add_argument_group(title='automatic options')
@@ -681,21 +734,147 @@ def run_command(protocol, command):
 
 if __name__ == '__main__':
 
-    # Check import dependencies
-    if not check_module('daemon'):
-        print('Install daemon module: pip3 install python-daemon')
-        exit(1)
+    def debugger(verbose, writer, message):
+        """
+        Debugger: write debug and print verbose message
+        :param verbose: verbose status; boolean
+        :param writer: Log writer object
+        :param message: String message
+        :return: String on stdout
+        """
+        if verbose:
+            writer.debug(message)
+            printv(message)
 
-    if not check_module('ldap3'):
-        print('Install ldap3 module: pip3 install ldap3')
-        exit(1)
 
-    if not check_module('winrm'):
-        print('Install winrm module: pip3 install pywinrm')
-        exit(1)
+    def cli_check_module():
+        """
+        CLI function: Check if dependencies modules is installed
+        :return: Boolean
+        """
+        # List of dependencies modules
+        mods = ['daemon', 'ldap3', 'winrm']
+        # Check import dependencies
+        for mod in mods:
+            assert check_module(mod), 'Install "{0}" module with pip install.'.format(mod)
 
-    # Parse arguments
-    option = parse_arguments()
-    args = option.parse_args()
+
+    def cli_select_action(action):
+        """
+        Select action
+        :param action: Sub-parser action
+        :return: action function
+        """
+        # Define action dictionary
+        actions = {
+            'config': cli_config,
+            'mac': 'Manual action',
+            'start': 'Automatic action'
+        }
+        return actions.get(action, 'No action available')
+
+
+    def cli_config(arguments):
+        """
+        Configuration process
+        :param arguments: Arguments list
+        :return: None
+        """
+        # Select new or get
+        if arguments.new_conf:
+            # Create a new configuration file
+            if not os.path.exists(arguments.new_conf):
+                try:
+                    new_config(arguments.new_conf)
+                except FileNotFoundError as err:
+                    print('I was unable to write the file: {0}'.format(err))
+            else:
+                print('Configuration file exists: {0}.'.format(arguments.new_conf))
+                # Exists? Overwrite?
+                if confirm('Overwrite with a new one?'):
+                    try:
+                        os.remove(arguments.new_conf)
+                        new_config(arguments.new_conf)
+                    except OSError as err:
+                        print('I was unable to overwrite the file: {0}'.format(err))
+        elif arguments.get_conf:
+            # Read configuration file
+            if os.path.exists(arguments.get_conf):
+                try:
+                    cfg = read_config(arguments.get_conf)
+                    print("""
+                    NETWORK ARCHITECTURE
+
+                    +--------------------------+Spend credential+--------------------------+
+                    |                          +--------------->+                          |
+                    |          radius          |                |          ldap            |
+                    |                          +<---------------+                          |
+                    +--------------------------+ Return VLAN-ID +--------------------------+
+                               ^     |
+                        Send   |     |  Received
+                        MAC    |     |  VLAN-ID
+                               |     |
+                               |     v
+                    +--------------------------+
+                    |                          |
+                    |       switch/router      |
+                    |                          |
+                    +--------------------------+
+                               ^     |
+                      Send     |     |  Received
+                      request  |     |  VLAN
+                               |     v
+                            +-----------+
+                            |           |
+                            |           |
+                            |   client  |
+                            |           |
+                            |           |
+                            +-----------+
+
+                    LEGEND
+
+                    client: Windows/Linux/MacOSX/other
+                    switch/router: network appliance
+                    radius: freeradius/Microsoft radius
+                    ldap: Active Directory/389/FreeIPA/eDirectory/other LDAP server
+                    
+                    CONFIGURATION
+                    
+                    1) Configure your switch/router to send RADIUS Access-Request with this VLAN-ID: {0}
+                    2) Configure your rasius server with the policy that allows you to access the network.
+                       The LDAP groups to be placed in the policy networks are as follows: {1}
+                    3) Create the following groups on your LDAP server: {2} {3}
+                    4) Start using vmam! 
+                                """.format(list(cfg['VMAM']['vlan_group_id'].keys()), cfg['VMAM']['vlan_group_id'],
+                                           list(cfg['VMAM']['vlan_group_id'].values()),
+                                           cfg['LDAP']['other_group']))
+                except FileNotFoundError as err:
+                    print('I was unable to read the file: {0}'.format(err))
+                    exit(1)
+            else:
+                print('Configuration file not exists: {0}. See "vmam config --new" option.'.format(arguments.get_conf))
+
+
+    def main():
+        """
+        Command line main process
+        :return: None
+        """
+        # Check required modules
+        cli_check_module()
+        # Parse arguments
+        option = parse_arguments()
+        args = option.parse_args()
+        # Check command line arguments
+        if not args.action:
+            option.print_help()
+            exit(1)
+        # Get action
+        cli = cli_select_action(args.action)
+        cli(args)
+
+
+    main()
 
 # endregion
