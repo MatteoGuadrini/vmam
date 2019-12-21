@@ -801,6 +801,7 @@ if __name__ == '__main__':
             # Read configuration file
             if os.path.exists(arguments.get_conf):
                 try:
+                    cfg = read_config(arguments.get_conf)
                     print("""
                     NETWORK ARCHITECTURE
 
@@ -837,7 +838,17 @@ if __name__ == '__main__':
                     switch/router: network appliance
                     radius: freeradius/Microsoft radius
                     ldap: Active Directory/389/FreeIPA/eDirectory/other LDAP server
-                                """)
+                    
+                    CONFIGURATION
+                    
+                    1) Configure your switch/router to send RADIUS Access-Request with this VLAN-ID: {0}
+                    2) Configure your rasius server with the policy that allows you to access the network.
+                       The LDAP groups to be placed in the policy networks are as follows: {1}
+                    3) Create the following groups on your LDAP server: {2} {3}
+                    4) Start using vmam! 
+                                """.format(list(cfg['VMAM']['vlan_group_id'].keys()), cfg['VMAM']['vlan_group_id'],
+                                           list(cfg['VMAM']['vlan_group_id'].values()),
+                                           cfg['LDAP']['other_group']))
                 except FileNotFoundError as err:
                     print('I was unable to read the file: {0}'.format(err))
                     exit(1)
