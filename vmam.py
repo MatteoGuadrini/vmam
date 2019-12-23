@@ -866,7 +866,10 @@ if __name__ == '__main__':
         cfg = read_config(arguments.conf)
         # Create log writer
         wt = logwriter(cfg['VMAM']['log'])
-        debugger(arguments.verbose, wt, "Start in manual mode.")
+        debugger(arguments.verbose, wt, 'Start in manual mode.')
+        # Check mandatory entry on configuration file
+        debugger(arguments.verbose, wt, 'Check mandatory fields on configuration file {0}.'.format(arguments.conf))
+        check_config(arguments.conf)
 
 
     def main():
