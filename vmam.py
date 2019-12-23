@@ -439,20 +439,24 @@ def parse_arguments():
     return parser_object
 
 
-def connect_ldap(server, *, ssl=False):
+def connect_ldap(servers, *, ssl=False):
     """
     Connect to LDAP server (SYNC mode)
-    :param server: LDAP server
+    :param servers: LDAP servers list
     :param ssl: If True, set port to 636 else 389
     :return: LDAP connection object
     ---
-    >>>conn = connect_ldap('dc1.foo.bar', ssl=True)
+    >>>conn = connect_ldap(['dc1.foo.bar'], ssl=True)
     >>>print(conn)
     """
     # Check ssl connection
     port = 636 if ssl else 389
+    # Create a server pool
+    srvs = list()
+    for server in servers:
+        srvs.append(ldap3.Server(server, get_info=ldap3.ALL, port=port, use_ssl=ssl))
     # Start connection to LDAP server
-    server_connection = ldap3.Server(server, get_info=ldap3.ALL, port=port, use_ssl=ssl)
+    server_connection = ldap3.ServerPool(srvs, ldap3.ROUND_ROBIN, active=True, exhaust=True)
     return server_connection
 
 
@@ -870,6 +874,18 @@ if __name__ == '__main__':
         # Check mandatory entry on configuration file
         debugger(arguments.verbose, wt, 'Check mandatory fields on configuration file {0}.'.format(arguments.conf))
         check_config(arguments.conf)
+        # Check actions
+        if arguments.add:
+            debugger(arguments.verbose, wt, 'Add mac-address {0} on LDAP servers {1} in {2} VLAN group.'.format(
+                ','.join(arguments.add), ','.join(cfg['LDAP']['servers']), ','.join(arguments.vlanid)
+            ))
+            # Connect LDAP servers
+            debugger(arguments.verbose, wt, 'Connect to LDAP servers {0}'.format(','.join(cfg['LDAP']['servers'])))
+            connect_ldap(cfg['LDAP']['servers'], ssl=cfg['LDAP']['ssl'])
+        elif arguments.disable:
+            ...
+        elif arguments.remove:
+            ...
 
 
     def main():
