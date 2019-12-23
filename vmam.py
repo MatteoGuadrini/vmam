@@ -178,6 +178,19 @@ def logwriter(logfile):
     return logger
 
 
+def debugger(verbose, writer, message):
+    """
+    Debugger: write debug and print verbose message
+    :param verbose: verbose status; boolean
+    :param writer: Log writer object
+    :param message: String message
+    :return: String on stdout
+    """
+    if verbose:
+        writer.debug(message)
+        printv(message)
+
+
 def confirm(message):
     """
     Confirm action
@@ -733,19 +746,6 @@ def run_command(protocol, command):
 # region Start process
 
 if __name__ == '__main__':
-
-    def debugger(verbose, writer, message):
-        """
-        Debugger: write debug and print verbose message
-        :param verbose: verbose status; boolean
-        :param writer: Log writer object
-        :param message: String message
-        :return: String on stdout
-        """
-        if verbose:
-            writer.debug(message)
-            printv(message)
-
 
     def cli_check_module():
         """
