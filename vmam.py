@@ -881,7 +881,11 @@ if __name__ == '__main__':
             ))
             # Connect LDAP servers
             debugger(arguments.verbose, wt, 'Connect to LDAP servers {0}'.format(','.join(cfg['LDAP']['servers'])))
-            connect_ldap(cfg['LDAP']['servers'], ssl=cfg['LDAP']['ssl'])
+            srv = connect_ldap(cfg['LDAP']['servers'], ssl=cfg['LDAP']['ssl'])
+            # Bind LDAP server
+            debugger(arguments.verbose, wt, 'Bind to LDAP servers {0} with user {1}'.format(
+                ','.join(cfg['LDAP']['servers']), cfg['LDAP']['bind_user']))
+            bind = bind_ldap(srv, cfg['LDAP']['bind_user'], cfg['LDAP']['bind_pwd'], tls=cfg['LDAP']['tls'])
         elif arguments.disable:
             ...
         elif arguments.remove:
