@@ -768,7 +768,7 @@ if __name__ == '__main__':
         # Define action dictionary
         actions = {
             'config': cli_config,
-            'mac': 'Manual action',
+            'mac': cli_mac,
             'start': 'Automatic action'
         }
         return actions.get(action, 'No action available')
@@ -854,6 +854,19 @@ if __name__ == '__main__':
                     exit(1)
             else:
                 print('Configuration file not exists: {0}. See "vmam config --new" option.'.format(arguments.get_conf))
+
+
+    def cli_mac(arguments):
+        """
+        Manual mac-address process
+        :param arguments: Arguments list
+        :return: None
+        """
+        # Read the configuration file
+        cfg = read_config(arguments.conf)
+        # Create log writer
+        wt = logwriter(cfg['VMAM']['log'])
+        debugger(arguments.verbose, wt, "Start in manual mode.")
 
 
     def main():
