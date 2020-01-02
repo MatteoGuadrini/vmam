@@ -876,10 +876,11 @@ if __name__ == '__main__':
         check_config(arguments.conf)
         # Check actions
         if arguments.add:
+            mac = ''.join(arguments.add)
             print('Add mac-address {0} on LDAP servers {1} in {2} VLAN group.'.format(
-                ''.join(arguments.add), ','.join(cfg['LDAP']['servers']), ','.join(arguments.vlanid)))
+                mac, ','.join(cfg['LDAP']['servers']), ''.join(arguments.vlanid)))
             debugger(arguments.verbose, wt, 'Add mac-address {0} on LDAP servers {1} in {2} VLAN group.'.format(
-                ''.join(arguments.add), ','.join(cfg['LDAP']['servers']), ','.join(arguments.vlanid)
+                mac, ','.join(cfg['LDAP']['servers']), ''.join(arguments.vlanid)
             ))
             # Connect LDAP servers
             debugger(arguments.verbose, wt, 'Connect to LDAP servers {0}'.format(','.join(cfg['LDAP']['servers'])))
@@ -890,24 +891,32 @@ if __name__ == '__main__':
             bind = bind_ldap(srv, cfg['LDAP']['bind_user'], cfg['LDAP']['bind_pwd'], tls=cfg['LDAP']['tls'])
             # Query: check if mac-address exist
             debugger(arguments.verbose, wt, 'Exist mac-address {0} on LDAP servers {1}?'.format(
-                ','.join(arguments.add), ','.join(cfg['LDAP']['servers'])))
-            qret = query_ldap(bind, cfg['LDAP']['user_base_dn'], ['samaccountname'],
-                              samaccountname=''.join(arguments.add))
-            if not qret[0].get('dn'):
+                mac, ','.join(cfg['LDAP']['servers'])))
+            ret = query_ldap(bind, cfg['LDAP']['user_base_dn'], ['samaccountname'], samaccountname=mac)
+            if not ret[0].get('dn'):
                 debugger(arguments.verbose, wt, 'Mac-address {0} not exists on LDAP servers {1}'.format(
-                    ''.join(arguments.add), ','.join(cfg['LDAP']['servers'])))
+                    mac, ','.join(cfg['LDAP']['servers'])))
                 # Add mac-address to LDAP
+                dn = 'cn={0},{1}'.format(mac, cfg['LDAP']['mac_user_base_dn'])
+                attrs = {'givenname': 'mac-address',
+                         'sn': mac,
+                         'samaccountname': mac,
+                         'userprincipalname': '{0}@{1}'.format(mac, cfg['LDAP']['domain']),
+                         'employeetype': 'VMAM_MANUAL',
+                         'description': mac}
                 try:
-                    new_user(bind, ''.join(arguments.add))
+                    new_user(bind, dn, **attrs)
+                    print('Mac-address {0} created on LDAP servers {1} in {2} VLAN group.'.format(
+                        dn, ','.join(cfg['LDAP']['servers']), ''.join(arguments.vlanid)))
                     wt.info('Add mac-address {0} on LDAP servers {1} in {2} VLAN group.'.format(
-                            ''.join(arguments.add), ','.join(cfg['LDAP']['servers']), ','.join(arguments.vlanid)))
+                        dn, ','.join(cfg['LDAP']['servers']), ','.join(arguments.vlanid)))
                 except Exception as err:
-                    print('ERROR: ', err)
+                    print('ERROR:', err)
                     wt.error(err)
             else:
                 # Query: verify LDAP group is different
                 debugger(arguments.verbose, wt, 'Mac-address {0} exists on LDAP servers {1}'.format(
-                    qret[0].get('dn'), ','.join(cfg['LDAP']['servers'])))
+                    ret[0].get('dn'), ','.join(cfg['LDAP']['servers'])))
         elif arguments.disable:
             ...
         elif arguments.remove:
