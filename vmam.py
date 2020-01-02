@@ -876,16 +876,38 @@ if __name__ == '__main__':
         check_config(arguments.conf)
         # Check actions
         if arguments.add:
+            print('Add mac-address {0} on LDAP servers {1} in {2} VLAN group.'.format(
+                ''.join(arguments.add), ','.join(cfg['LDAP']['servers']), ','.join(arguments.vlanid)))
             debugger(arguments.verbose, wt, 'Add mac-address {0} on LDAP servers {1} in {2} VLAN group.'.format(
-                ','.join(arguments.add), ','.join(cfg['LDAP']['servers']), ','.join(arguments.vlanid)
+                ''.join(arguments.add), ','.join(cfg['LDAP']['servers']), ','.join(arguments.vlanid)
             ))
             # Connect LDAP servers
             debugger(arguments.verbose, wt, 'Connect to LDAP servers {0}'.format(','.join(cfg['LDAP']['servers'])))
             srv = connect_ldap(cfg['LDAP']['servers'], ssl=cfg['LDAP']['ssl'])
             # Bind LDAP server
-            debugger(arguments.verbose, wt, 'Bind to LDAP servers {0} with user {1}'.format(
+            debugger(arguments.verbose, wt, 'Bind on LDAP servers {0} with user {1}'.format(
                 ','.join(cfg['LDAP']['servers']), cfg['LDAP']['bind_user']))
             bind = bind_ldap(srv, cfg['LDAP']['bind_user'], cfg['LDAP']['bind_pwd'], tls=cfg['LDAP']['tls'])
+            # Query: check if mac-address exist
+            debugger(arguments.verbose, wt, 'Exist mac-address {0} on LDAP servers {1}?'.format(
+                ','.join(arguments.add), ','.join(cfg['LDAP']['servers'])))
+            qret = query_ldap(bind, cfg['LDAP']['user_base_dn'], ['samaccountname'],
+                              samaccountname=''.join(arguments.add))
+            if not qret[0].get('dn'):
+                debugger(arguments.verbose, wt, 'Mac-address {0} not exists on LDAP servers {1}'.format(
+                    ''.join(arguments.add), ','.join(cfg['LDAP']['servers'])))
+                # Add mac-address to LDAP
+                try:
+                    new_user(bind, ''.join(arguments.add))
+                    wt.info('Add mac-address {0} on LDAP servers {1} in {2} VLAN group.'.format(
+                            ''.join(arguments.add), ','.join(cfg['LDAP']['servers']), ','.join(arguments.vlanid)))
+                except Exception as err:
+                    print('ERROR: ', err)
+                    wt.error(err)
+            else:
+                # Query: verify LDAP group is different
+                debugger(arguments.verbose, wt, 'Mac-address {0} exists on LDAP servers {1}'.format(
+                    qret[0].get('dn'), ','.join(cfg['LDAP']['servers'])))
         elif arguments.disable:
             ...
         elif arguments.remove:
