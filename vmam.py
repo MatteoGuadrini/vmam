@@ -569,6 +569,26 @@ def set_user_password(bind_object, username, password, *, ldap_version='LDAP'):
                                                                       old_password=None)
 
 
+def add_to_group(bind_object, groupname, members):
+    """
+    Add a member of exists LDAP group
+    :param bind_object: LDAP bind object
+    :param groupname: distinguishedName of group
+    :param members: List of a new members
+    :return: LDAP operation result
+    ---
+    >>>conn = connect_ldap('dc1.foo.bar')
+    >>>bind = bind_ldap(conn, r'domain\\user', 'password', tls=True)
+    >>>set_user(bind, 'CN=ex_group1,OU=Groups,DC=foo,DC=bar', givenName='User 1', sn='Example')
+    """
+    # Modify group members
+    bind_object.modify(
+        groupname,
+        {'member': (ldap3.MODIFY_ADD, members)}
+    )
+    return bind_object.result
+
+
 def filetime_to_datetime(filetime):
     """
     Convert MS filetime LDAP to datetime
