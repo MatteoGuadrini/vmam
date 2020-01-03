@@ -696,6 +696,63 @@ def run_command(protocol, command):
 
 if __name__ == '__main__':
 
+    def parse_arguments():
+        """
+        Function that captures the parameters and the arguments in the command line
+        :return: Parser object
+        ---
+        >>>option = parse_arguments()
+        >>>print(option.parse_args())
+        """
+        # Create a common parser
+        common_parser = argparse.ArgumentParser(add_help=False)
+        common_parser.add_argument('--verbose', '-v', help='enable verbosity, for debugging process.',
+                                   dest='verbose', action='store_true')
+        # Create a principal parser
+        parser_object = argparse.ArgumentParser(prog='vmam', description='VLAN Mac-address Authentication Manager',
+                                                parents=[common_parser])
+        parser_object.add_argument('--version', '-V', action='version', version='%(prog)s 0.1.0')
+        # Create sub_parser "action"
+        action_parser = parser_object.add_subparsers(title='action', description='valid action',
+                                                     help='available actions for vmam command', dest='action')
+        # config session
+        config_parser = action_parser.add_parser('config', help='vmam configuration options', parents=[common_parser])
+        group_config = config_parser.add_argument_group(title='configuration')
+        group_config_mutually = group_config.add_mutually_exclusive_group(required=True)
+        group_config_mutually.add_argument('--new', '-n', help='generate new configuration file', dest='new_conf',
+                                           action='store', nargs='?', const=(get_platform()['conf_default']),
+                                           metavar='CONF_FILE')
+        group_config_mutually.add_argument('--get-cmd', '-g',
+                                           help='get information for a radius server and switch/router.',
+                                           dest='get_conf', action='store', nargs='?',
+                                           const=(get_platform()['conf_default']), metavar='CONF_FILE')
+        # start session
+        start_parser = action_parser.add_parser('start', help='vmam automatic process options', parents=[common_parser])
+        group_start = start_parser.add_argument_group(title='automatic options')
+        group_start.add_argument('--config-file', '-c', help='parse configuration file', dest='conf', action='store',
+                                 nargs='?', default=get_platform()['conf_default'], metavar='CONF_FILE')
+        group_start.add_argument('--daemon', '-d', help='start automatic process as a daemon', dest='daemon',
+                                 action='store_true')
+        # mac session
+        mac_parser = action_parser.add_parser('mac', help='vmam manual process options', parents=[common_parser])
+        group_mac = mac_parser.add_argument_group(title='manual options')
+        group_mac_mutually = group_mac.add_mutually_exclusive_group(required=True)
+        group_mac_mutually.add_argument('--add', '-a', help='add mac-address to LDAP server', dest='add',
+                                        action='store',
+                                        nargs=1, metavar='MAC_ADDR')
+        group_mac_mutually.add_argument('--remove', '-r', help='remove mac-address to LDAP server', dest='remove',
+                                        action='store', nargs=1, metavar='MAC_ADDR')
+        group_mac_mutually.add_argument('--disable', '-d', help='disable mac-address to LDAP server', dest='disable',
+                                        action='store', nargs=1, metavar='MAC_ADDR')
+        group_mac.add_argument('--config-file', '-c', help='parse configuration file', dest='conf', action='store',
+                               nargs='?', default=get_platform()['conf_default'], metavar='CONF_FILE')
+        group_mac.add_argument('--force', '-f', help='force action', dest='force', action='store_true')
+        group_mac.add_argument('--vlan-id', '-i', help='vlan-id number', dest='vlanid', action='store',
+                               nargs=1, metavar='VLAN_ID', type=int, required=True)
+        # Return parser object
+        return parser_object
+
+
     def cli_check_module():
         """
         CLI function: Check if dependencies modules is installed
