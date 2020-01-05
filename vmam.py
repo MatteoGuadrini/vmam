@@ -178,6 +178,19 @@ def logwriter(logfile):
     return logger
 
 
+def debugger(verbose, writer, message):
+    """
+    Debugger: write debug and print verbose message
+    :param verbose: verbose status; boolean
+    :param writer: Log writer object
+    :param message: String message
+    :return: String on stdout
+    """
+    if verbose:
+        writer.debug(message)
+        printv(message)
+
+
 def confirm(message):
     """
     Confirm action
@@ -371,75 +384,24 @@ def check_config(path):
     return True
 
 
-def parse_arguments():
-    """
-    Function that captures the parameters and the arguments in the command line
-    :return: Parser object
-    ---
-    >>>option = parse_arguments()
-    >>>print(option.parse_args())
-    """
-    # Create a common parser
-    common_parser = argparse.ArgumentParser(add_help=False)
-    common_parser.add_argument('--verbose', '-v', help='enable verbosity, for debugging process.',
-                               dest='verbose', action='store_true')
-    # Create a principal parser
-    parser_object = argparse.ArgumentParser(prog='vmam', description='VLAN Mac-address Authentication Manager',
-                                            parents=[common_parser])
-    parser_object.add_argument('--version', '-V', action='version', version='%(prog)s 0.1.0')
-    # Create sub_parser "action"
-    action_parser = parser_object.add_subparsers(title='action', description='valid action',
-                                                 help='available actions for vmam command', dest='action')
-    # config session
-    config_parser = action_parser.add_parser('config', help='vmam configuration options', parents=[common_parser])
-    group_config = config_parser.add_argument_group(title='configuration')
-    group_config_mutually = group_config.add_mutually_exclusive_group(required=True)
-    group_config_mutually.add_argument('--new', '-n', help='generate new configuration file', dest='new_conf',
-                                       action='store', nargs='?', const=(get_platform()['conf_default']),
-                                       metavar='CONF_FILE')
-    group_config_mutually.add_argument('--get-cmd', '-g', help='get information for a radius server and switch/router.',
-                                       dest='get_conf', action='store', nargs='?',
-                                       const=(get_platform()['conf_default']), metavar='CONF_FILE')
-    # start session
-    start_parser = action_parser.add_parser('start', help='vmam automatic process options', parents=[common_parser])
-    group_start = start_parser.add_argument_group(title='automatic options')
-    group_start.add_argument('--config-file', '-c', help='parse configuration file', dest='conf', action='store',
-                             nargs='?', default=get_platform()['conf_default'], metavar='CONF_FILE')
-    group_start.add_argument('--daemon', '-d', help='start automatic process as a daemon', dest='daemon',
-                             action='store_true')
-    # mac session
-    mac_parser = action_parser.add_parser('mac', help='vmam manual process options', parents=[common_parser])
-    group_mac = mac_parser.add_argument_group(title='manual options')
-    group_mac_mutually = group_mac.add_mutually_exclusive_group(required=True)
-    group_mac_mutually.add_argument('--add', '-a', help='add mac-address to LDAP server', dest='add', action='store',
-                                    nargs=1, metavar='MAC_ADDR')
-    group_mac_mutually.add_argument('--remove', '-r', help='remove mac-address to LDAP server', dest='remove',
-                                    action='store', nargs=1, metavar='MAC_ADDR')
-    group_mac_mutually.add_argument('--disable', '-d', help='disable mac-address to LDAP server', dest='disable',
-                                    action='store', nargs=1, metavar='MAC_ADDR')
-    group_mac.add_argument('--config-file', '-c', help='parse configuration file', dest='conf', action='store',
-                           nargs='?', default=get_platform()['conf_default'], metavar='CONF_FILE')
-    group_mac.add_argument('--force', '-f', help='force action', dest='force', action='store_true')
-    group_mac.add_argument('--vlan-id', '-i', help='vlan-id number', dest='vlanid', action='store',
-                           nargs=1, metavar='VLAN_ID', required=True)
-    # Return parser object
-    return parser_object
-
-
-def connect_ldap(server, *, ssl=False):
+def connect_ldap(servers, *, ssl=False):
     """
     Connect to LDAP server (SYNC mode)
-    :param server: LDAP server
+    :param servers: LDAP servers list
     :param ssl: If True, set port to 636 else 389
     :return: LDAP connection object
     ---
-    >>>conn = connect_ldap('dc1.foo.bar', ssl=True)
+    >>>conn = connect_ldap(['dc1.foo.bar'], ssl=True)
     >>>print(conn)
     """
     # Check ssl connection
     port = 636 if ssl else 389
+    # Create a server pool
+    srvs = list()
+    for server in servers:
+        srvs.append(ldap3.Server(server, get_info=ldap3.ALL, port=port, use_ssl=ssl))
     # Start connection to LDAP server
-    server_connection = ldap3.Server(server, get_info=ldap3.ALL, port=port, use_ssl=ssl)
+    server_connection = ldap3.ServerPool(srvs, ldap3.ROUND_ROBIN, active=True, exhaust=True)
     return server_connection
 
 
@@ -607,6 +569,26 @@ def set_user_password(bind_object, username, password, *, ldap_version='LDAP'):
                                                                       old_password=None)
 
 
+def add_to_group(bind_object, groupname, members):
+    """
+    Add a member of exists LDAP group
+    :param bind_object: LDAP bind object
+    :param groupname: distinguishedName of group
+    :param members: List of a new members
+    :return: LDAP operation result
+    ---
+    >>>conn = connect_ldap('dc1.foo.bar')
+    >>>bind = bind_ldap(conn, r'domain\\user', 'password', tls=True)
+    >>>set_user(bind, 'CN=ex_group1,OU=Groups,DC=foo,DC=bar', givenName='User 1', sn='Example')
+    """
+    # Modify group members
+    bind_object.modify(
+        groupname,
+        {'member': (ldap3.MODIFY_ADD, members)}
+    )
+    return bind_object.result
+
+
 def filetime_to_datetime(filetime):
     """
     Convert MS filetime LDAP to datetime
@@ -734,17 +716,61 @@ def run_command(protocol, command):
 
 if __name__ == '__main__':
 
-    def debugger(verbose, writer, message):
+    def parse_arguments():
         """
-        Debugger: write debug and print verbose message
-        :param verbose: verbose status; boolean
-        :param writer: Log writer object
-        :param message: String message
-        :return: String on stdout
+        Function that captures the parameters and the arguments in the command line
+        :return: Parser object
+        ---
+        >>>option = parse_arguments()
+        >>>print(option.parse_args())
         """
-        if verbose:
-            writer.debug(message)
-            printv(message)
+        # Create a common parser
+        common_parser = argparse.ArgumentParser(add_help=False)
+        common_parser.add_argument('--verbose', '-v', help='enable verbosity, for debugging process.',
+                                   dest='verbose', action='store_true')
+        # Create a principal parser
+        parser_object = argparse.ArgumentParser(prog='vmam', description='VLAN Mac-address Authentication Manager',
+                                                parents=[common_parser])
+        parser_object.add_argument('--version', '-V', action='version', version='%(prog)s 0.1.0')
+        # Create sub_parser "action"
+        action_parser = parser_object.add_subparsers(title='action', description='valid action',
+                                                     help='available actions for vmam command', dest='action')
+        # config session
+        config_parser = action_parser.add_parser('config', help='vmam configuration options', parents=[common_parser])
+        group_config = config_parser.add_argument_group(title='configuration')
+        group_config_mutually = group_config.add_mutually_exclusive_group(required=True)
+        group_config_mutually.add_argument('--new', '-n', help='generate new configuration file', dest='new_conf',
+                                           action='store', nargs='?', const=(get_platform()['conf_default']),
+                                           metavar='CONF_FILE')
+        group_config_mutually.add_argument('--get-cmd', '-g',
+                                           help='get information for a radius server and switch/router.',
+                                           dest='get_conf', action='store', nargs='?',
+                                           const=(get_platform()['conf_default']), metavar='CONF_FILE')
+        # start session
+        start_parser = action_parser.add_parser('start', help='vmam automatic process options', parents=[common_parser])
+        group_start = start_parser.add_argument_group(title='automatic options')
+        group_start.add_argument('--config-file', '-c', help='parse configuration file', dest='conf', action='store',
+                                 nargs='?', default=get_platform()['conf_default'], metavar='CONF_FILE')
+        group_start.add_argument('--daemon', '-d', help='start automatic process as a daemon', dest='daemon',
+                                 action='store_true')
+        # mac session
+        mac_parser = action_parser.add_parser('mac', help='vmam manual process options', parents=[common_parser])
+        group_mac = mac_parser.add_argument_group(title='manual options')
+        group_mac_mutually = group_mac.add_mutually_exclusive_group(required=True)
+        group_mac_mutually.add_argument('--add', '-a', help='add mac-address to LDAP server', dest='add',
+                                        action='store',
+                                        nargs=1, metavar='MAC_ADDR')
+        group_mac_mutually.add_argument('--remove', '-r', help='remove mac-address to LDAP server', dest='remove',
+                                        action='store', nargs=1, metavar='MAC_ADDR')
+        group_mac_mutually.add_argument('--disable', '-d', help='disable mac-address to LDAP server', dest='disable',
+                                        action='store', nargs=1, metavar='MAC_ADDR')
+        group_mac.add_argument('--config-file', '-c', help='parse configuration file', dest='conf', action='store',
+                               nargs='?', default=get_platform()['conf_default'], metavar='CONF_FILE')
+        group_mac.add_argument('--force', '-f', help='force action', dest='force', action='store_true')
+        group_mac.add_argument('--vlan-id', '-i', help='vlan-id number', dest='vlanid', action='store',
+                               nargs=1, metavar='VLAN_ID', type=int, required=True)
+        # Return parser object
+        return parser_object
 
 
     def cli_check_module():
@@ -768,7 +794,7 @@ if __name__ == '__main__':
         # Define action dictionary
         actions = {
             'config': cli_config,
-            'mac': 'Manual action',
+            'mac': cli_mac,
             'start': 'Automatic action'
         }
         return actions.get(action, 'No action available')
@@ -854,6 +880,93 @@ if __name__ == '__main__':
                     exit(1)
             else:
                 print('Configuration file not exists: {0}. See "vmam config --new" option.'.format(arguments.get_conf))
+
+
+    def cli_mac(arguments):
+        """
+        Manual mac-address process
+        :param arguments: Arguments list
+        :return: None
+        """
+        # Read the configuration file
+        cfg = read_config(arguments.conf)
+        # Create log writer
+        wt = logwriter(cfg['VMAM']['log'])
+        debugger(arguments.verbose, wt, 'Start in manual mode.')
+        # Check mandatory entry on configuration file
+        debugger(arguments.verbose, wt, 'Check mandatory fields on configuration file {0}.'.format(arguments.conf))
+        check_config(arguments.conf)
+        # Check actions
+        if arguments.add:
+            mac = ''.join(arguments.add)
+            vlanid = arguments.vlanid[0]
+            dn = 'cn={0},{1}'.format(mac, cfg['LDAP']['mac_user_base_dn'])
+            print('Add mac-address {0} on LDAP servers {1} in {2} VLAN group.'.format(
+                mac, ','.join(cfg['LDAP']['servers']), vlanid))
+            debugger(arguments.verbose, wt, 'Add mac-address {0} on LDAP servers {1} in {2} VLAN group.'.format(
+                mac, ','.join(cfg['LDAP']['servers']), vlanid))
+            # Connect LDAP servers
+            debugger(arguments.verbose, wt, 'Connect to LDAP servers {0}'.format(','.join(cfg['LDAP']['servers'])))
+            srv = connect_ldap(cfg['LDAP']['servers'], ssl=cfg['LDAP']['ssl'])
+            # Bind LDAP server
+            debugger(arguments.verbose, wt, 'Bind on LDAP servers {0} with user {1}'.format(
+                ','.join(cfg['LDAP']['servers']), cfg['LDAP']['bind_user']))
+            bind = bind_ldap(srv, cfg['LDAP']['bind_user'], cfg['LDAP']['bind_pwd'], tls=cfg['LDAP']['tls'])
+            # Query: check if mac-address exist
+            debugger(arguments.verbose, wt, 'Exist mac-address {0} on LDAP servers {1}?'.format(
+                mac, ','.join(cfg['LDAP']['servers'])))
+            ret = query_ldap(bind, cfg['LDAP']['user_base_dn'], ['samaccountname'], samaccountname=mac)
+            if not ret[0].get('dn'):
+                debugger(arguments.verbose, wt, 'Mac-address {0} not exists on LDAP servers {1}'.format(
+                    mac, ','.join(cfg['LDAP']['servers'])))
+                # Add mac-address to LDAP
+                attrs = {'givenname': 'mac-address',
+                         'sn': mac,
+                         'samaccountname': mac,
+                         'userprincipalname': '{0}@{1}'.format(mac, cfg['LDAP']['domain']),
+                         'employeetype': 'VMAM_MANUAL',
+                         'description': mac}
+                # Create mac-address user
+                try:
+                    new_user(bind, dn, **attrs)
+                    print('Mac-address {0} created on LDAP servers {1} in {2} VLAN group.'.format(
+                        dn, ','.join(cfg['LDAP']['servers']), vlanid))
+                except Exception as err:
+                    print('ERROR:', err)
+                    wt.error(err)
+                wt.info('Add mac-address {0} on LDAP servers {1} in {2} VLAN group.'.format(
+                    dn, ','.join(cfg['LDAP']['servers']), vlanid))
+            else:
+                # Query: verify LDAP group is different
+                debugger(arguments.verbose, wt, 'Mac-address {0} exists on LDAP servers {1}'.format(
+                    ret[0].get('dn'), ','.join(cfg['LDAP']['servers'])))
+            # Add VLAN and custom LDAP group
+            try:
+                # VLAN-ID group
+                debugger(arguments.verbose, wt, 'Verify VLAN group {0} to user {1}'.format(
+                    vlanid, dn))
+                for key, value in cfg['VMAM']['vlan_group_id'].items():
+                    # Check exist VLAN-ID in configuration file
+                    if vlanid == key:
+                        g = query_ldap(bind, cfg['LDAP']['user_base_dn'], ['member', 'distinguishedname'],
+                                         objectclass='group', name=value)
+                        u = query_ldap(bind, cfg['LDAP']['user_base_dn'], ['memberof'],
+                                       objectclass='user', name=mac)
+                        gdn = g[0]['dn']
+                        umember = u[0]['attributes']['memberof']
+                        # Add VLAN LDAP group to user mac address
+                        if not gdn in umember:
+                            add_to_group(bind, gdn, dn)
+                            print('Add VLAN group {0} to user {1}'.format(gdn, dn))
+                            wt.info('Add VLAN group {0} to user {1}'.format(gdn, dn))
+                        break
+            except Exception as err:
+                print('ERROR:', err)
+                wt.error(err)
+        elif arguments.disable:
+            ...
+        elif arguments.remove:
+            ...
 
 
     def main():
