@@ -290,7 +290,7 @@ def new_config(path=(get_platform()['conf_default'])):
             'max_computer_sync': 0,
             'time_computer_sync': '1m',
             'verify_attrib': ['memberof', 'cn'],
-            'write_attrib': ['extensionattribute1', 'extensionattribute2'],
+            'write_attrib': 'extensionattribute1',
             'match': 'like|exactly',
             'add_group_type': ['user', 'computer'],
             'other_group': ['second_grp', 'third_grp']
@@ -924,8 +924,12 @@ if __name__ == '__main__':
                          'sn': mac,
                          'samaccountname': mac,
                          'userprincipalname': '{0}@{1}'.format(mac, cfg['LDAP']['domain']),
-                         'employeetype': 'VMAM_MANUAL',
                          'description': mac}
+                # Check write_attrib on configuration file
+                if cfg['LDAP']['write_attrib']:
+                    attrs[cfg['LDAP']['write_attrib']] = 'VMAM_MANUAL'
+                else:
+                    attrs['employeetype'] = 'VMAM_MANUAL'
                 # Create mac-address user
                 try:
                     new_user(bind, dn, **attrs)
@@ -939,7 +943,7 @@ if __name__ == '__main__':
             else:
                 debugger(arguments.verbose, wt, 'Mac-address {0} exists on LDAP servers {1}'.format(
                     ret[0].get('dn'), ','.join(cfg['LDAP']['servers'])))
-                print('Mac address already {0} exists on LDAP servers {1}'.format(
+                print('Mac address {0} already exists on LDAP servers {1}'.format(
                     ret[0].get('dn'), ','.join(cfg['LDAP']['servers'])))
             # Add VLAN and custom LDAP group
             # VLAN-ID group
@@ -960,8 +964,8 @@ if __name__ == '__main__':
                             print('Add VLAN group {0} to user {1}'.format(gdn, dn))
                             wt.info('Add VLAN group {0} to user {1}'.format(gdn, dn))
                         else:
-                            debugger(arguments.verbose, wt, 'VLAN group {0} already added to user {1}'.format(vlanid,
-                                                                                                              dn))
+                            debugger(arguments.verbose, wt, 'VLAN group {0} already added to user {1}'.format(
+                                vlanid, dn))
                         break
                     else:
                         print('VLAN-ID {0} does not exist.'.format(vlanid))
@@ -971,8 +975,8 @@ if __name__ == '__main__':
                 wt.error(err)
             # Custom group
             try:
-                debugger(arguments.verbose, wt, 'Verify custom group {0} to user {1}'.format(cfg['LDAP']['other_group'],
-                                                                                             dn))
+                debugger(arguments.verbose, wt, 'Verify custom group {0} to user {1}'.format(
+                    ','.join(cfg['LDAP']['other_group']), dn))
                 for group in cfg['LDAP']['other_group']:
                     g = query_ldap(bind, cfg['LDAP']['user_base_dn'], ['member', 'distinguishedname'],
                                    objectclass='group', name=group)
@@ -986,8 +990,8 @@ if __name__ == '__main__':
                         print('Add custom group {0} to user {1}'.format(gdn, dn))
                         wt.info('Add custom group {0} to user {1}'.format(gdn, dn))
                     else:
-                        debugger(arguments.verbose, wt, 'Custom group {0} already added to user {1}'.format(vlanid,
-                                                                                                          dn))
+                        debugger(arguments.verbose, wt, 'Custom group {0} already added to user {1}'.format(
+                            ','.join(cfg['LDAP']['other_group']), dn))
                     break
             except Exception as err:
                 print('ERROR:', err)
