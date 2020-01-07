@@ -579,12 +579,32 @@ def add_to_group(bind_object, groupname, members):
     ---
     >>>conn = connect_ldap('dc1.foo.bar')
     >>>bind = bind_ldap(conn, r'domain\\user', 'password', tls=True)
-    >>>set_user(bind, 'CN=ex_group1,OU=Groups,DC=foo,DC=bar', givenName='User 1', sn='Example')
+    >>>add_to_group(bind, 'CN=ex_group1,OU=Groups,DC=foo,DC=bar', 'CN=ex_user1,CN=Users,DC=office,DC=bol')
     """
     # Modify group members
     bind_object.modify(
         groupname,
         {'member': (ldap3.MODIFY_ADD, members)}
+    )
+    return bind_object.result
+
+
+def remove_to_group(bind_object, groupname, members):
+    """
+    Remove a member of exists LDAP group
+    :param bind_object: LDAP bind object
+    :param groupname: distinguishedName of group
+    :param members: List of a removed members
+    :return: LDAP operation result
+    ---
+    >>>conn = connect_ldap('dc1.foo.bar')
+    >>>bind = bind_ldap(conn, r'domain\\user', 'password', tls=True)
+    >>>remove_to_group(bind, 'CN=ex_group1,OU=Groups,DC=foo,DC=bar', 'CN=ex_user1,CN=Users,DC=office,DC=bol')
+    """
+    # Modify group members
+    bind_object.modify(
+        groupname,
+        {'member': (ldap3.MODIFY_DELETE, members)}
     )
     return bind_object.result
 
@@ -948,7 +968,8 @@ if __name__ == '__main__':
             # Add VLAN and custom LDAP group
             # VLAN-ID group
             try:
-                debugger(arguments.verbose, wt, 'Verify VLAN group {0} to user {1}'.format(vlanid, dn))
+                debugger(arguments.verbose, wt, 'Verify VLAN group {0} to user {1}'.format(
+                    vlanid, dn))
                 for key, value in cfg['VMAM']['vlan_group_id'].items():
                     # Check exist VLAN-ID in configuration file
                     if vlanid == key:
@@ -959,23 +980,24 @@ if __name__ == '__main__':
                         gdn = g[0]['dn']
                         umember = u[0]['attributes']['memberof']
                         # Add VLAN LDAP group to user mac address
-                        if not gdn in umember:
+                        if gdn not in umember:
                             add_to_group(bind, gdn, dn)
                             print('Add VLAN group {0} to user {1}'.format(gdn, dn))
                             wt.info('Add VLAN group {0} to user {1}'.format(gdn, dn))
                         else:
                             debugger(arguments.verbose, wt, 'VLAN group {0} already added to user {1}'.format(
-                                vlanid, dn))
+                                cfg['VMAM']['vlan_group_id'][vlanid], dn))
                         break
-                    else:
-                        print('VLAN-ID {0} does not exist.'.format(vlanid))
-                        exit(4)
+                else:
+                    print('VLAN-ID group {0} does not exist. See the configuration file {1}'.format(
+                        vlanid, arguments.conf))
+                    exit(4)
             except Exception as err:
                 print('ERROR:', err)
                 wt.error(err)
             # Custom group
             try:
-                debugger(arguments.verbose, wt, 'Verify custom group {0} to user {1}'.format(
+                debugger(arguments.verbose, wt, 'Verify custom groups {0} to user {1}'.format(
                     ','.join(cfg['LDAP']['other_group']), dn))
                 for group in cfg['LDAP']['other_group']:
                     g = query_ldap(bind, cfg['LDAP']['user_base_dn'], ['member', 'distinguishedname'],
@@ -985,12 +1007,12 @@ if __name__ == '__main__':
                     gdn = g[0]['dn']
                     umember = u[0]['attributes']['memberof']
                     # Add VLAN LDAP group to user mac address
-                    if not gdn in umember:
+                    if gdn not in umember:
                         add_to_group(bind, gdn, dn)
-                        print('Add custom group {0} to user {1}'.format(gdn, dn))
-                        wt.info('Add custom group {0} to user {1}'.format(gdn, dn))
+                        print('Add custom groups {0} to user {1}'.format(gdn, dn))
+                        wt.info('Add custom groups {0} to user {1}'.format(gdn, dn))
                     else:
-                        debugger(arguments.verbose, wt, 'Custom group {0} already added to user {1}'.format(
+                        debugger(arguments.verbose, wt, 'Custom groups {0} already added to user {1}'.format(
                             ','.join(cfg['LDAP']['other_group']), dn))
                     break
             except Exception as err:
