@@ -1018,6 +1018,27 @@ if __name__ == '__main__':
             except Exception as err:
                 print('ERROR:', err)
                 wt.error(err)
+            # Check if other VLAN groups are assigned to the user
+            debugger(arguments.verbose, wt, 'Verify if other VLAN groups are assigned to the user {0}'.format(dn))
+            try:
+                # Get all VLAN group from user
+                for key, value in cfg['VMAM']['vlan_group_id'].items():
+                    # Check if VLAN-ID isn't equal
+                    if vlanid != key:
+                        g = query_ldap(bind, cfg['LDAP']['user_base_dn'], ['member', 'distinguishedname'],
+                                       objectclass='group', name=value)
+                        u = query_ldap(bind, cfg['LDAP']['user_base_dn'], ['memberof'],
+                                       objectclass='user', name=mac)
+                        gdn = g[0]['dn']
+                        umember = u[0]['attributes']['memberof']
+                        # Remove member of group
+                        if gdn in umember:
+                            remove_to_group(bind, gdn, dn)
+                            print('Remove VLAN group {0} to user {1}'.format(gdn, dn))
+                            wt.info('Remove VLAN group {0} to user {1}'.format(gdn, dn))
+            except Exception as err:
+                print('ERROR:', err)
+                wt.error(err)
         elif arguments.disable:
             ...
         elif arguments.remove:
