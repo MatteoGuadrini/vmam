@@ -877,7 +877,7 @@ if __name__ == '__main__':
                                            cfg['LDAP']['other_group']))
                 except FileNotFoundError as err:
                     print('I was unable to read the file: {0}'.format(err))
-                    exit(1)
+                    exit(2)
             else:
                 print('Configuration file not exists: {0}. See "vmam config --new" option.'.format(arguments.get_conf))
 
@@ -937,19 +937,19 @@ if __name__ == '__main__':
                 wt.info('Add mac-address {0} on LDAP servers {1} in {2} VLAN group.'.format(
                     dn, ','.join(cfg['LDAP']['servers']), vlanid))
             else:
-                # Query: verify LDAP group is different
                 debugger(arguments.verbose, wt, 'Mac-address {0} exists on LDAP servers {1}'.format(
                     ret[0].get('dn'), ','.join(cfg['LDAP']['servers'])))
+                print('Mac address already {0} exists on LDAP servers {1}'.format(
+                    ret[0].get('dn'), ','.join(cfg['LDAP']['servers'])))
             # Add VLAN and custom LDAP group
+            # VLAN-ID group
             try:
-                # VLAN-ID group
-                debugger(arguments.verbose, wt, 'Verify VLAN group {0} to user {1}'.format(
-                    vlanid, dn))
+                debugger(arguments.verbose, wt, 'Verify VLAN group {0} to user {1}'.format(vlanid, dn))
                 for key, value in cfg['VMAM']['vlan_group_id'].items():
                     # Check exist VLAN-ID in configuration file
                     if vlanid == key:
                         g = query_ldap(bind, cfg['LDAP']['user_base_dn'], ['member', 'distinguishedname'],
-                                         objectclass='group', name=value)
+                                       objectclass='group', name=value)
                         u = query_ldap(bind, cfg['LDAP']['user_base_dn'], ['memberof'],
                                        objectclass='user', name=mac)
                         gdn = g[0]['dn']
@@ -959,7 +959,36 @@ if __name__ == '__main__':
                             add_to_group(bind, gdn, dn)
                             print('Add VLAN group {0} to user {1}'.format(gdn, dn))
                             wt.info('Add VLAN group {0} to user {1}'.format(gdn, dn))
+                        else:
+                            debugger(arguments.verbose, wt, 'VLAN group {0} already added to user {1}'.format(vlanid,
+                                                                                                              dn))
                         break
+                    else:
+                        print('VLAN-ID {0} does not exist.'.format(vlanid))
+                        exit(4)
+            except Exception as err:
+                print('ERROR:', err)
+                wt.error(err)
+            # Custom group
+            try:
+                debugger(arguments.verbose, wt, 'Verify custom group {0} to user {1}'.format(cfg['LDAP']['other_group'],
+                                                                                             dn))
+                for group in cfg['LDAP']['other_group']:
+                    g = query_ldap(bind, cfg['LDAP']['user_base_dn'], ['member', 'distinguishedname'],
+                                   objectclass='group', name=group)
+                    u = query_ldap(bind, cfg['LDAP']['user_base_dn'], ['memberof'],
+                                   objectclass='user', name=mac)
+                    gdn = g[0]['dn']
+                    umember = u[0]['attributes']['memberof']
+                    # Add VLAN LDAP group to user mac address
+                    if not gdn in umember:
+                        add_to_group(bind, gdn, dn)
+                        print('Add custom group {0} to user {1}'.format(gdn, dn))
+                        wt.info('Add custom group {0} to user {1}'.format(gdn, dn))
+                    else:
+                        debugger(arguments.verbose, wt, 'Custom group {0} already added to user {1}'.format(vlanid,
+                                                                                                          dn))
+                    break
             except Exception as err:
                 print('ERROR:', err)
                 wt.error(err)
