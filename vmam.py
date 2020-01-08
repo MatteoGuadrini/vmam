@@ -421,7 +421,7 @@ def bind_ldap(server, user, password, *, tls=False):
     auto_bind = ldap3.AUTO_BIND_TLS_BEFORE_BIND if tls else ldap3.AUTO_BIND_NONE
     # Create a bind connection with user and password
     bind_connection = ldap3.Connection(server, user='{0}'.format(user), password='{0}'.format(password),
-                                       auto_bind=auto_bind)
+                                       auto_bind=auto_bind, raise_exceptions=True)
     # Check LDAP bind connection
     if bind_connection.bind():
         return bind_connection
@@ -683,6 +683,35 @@ def string_to_datetime(string):
         return False
 
 
+def mac_format(mac_address, mac_format):
+    """
+    Format mac-address with the specified format
+    :param mac_address: mac-address in any format
+    :param mac_format: mac format are (default=none):
+        -none 	112233445566
+        -hypen 	11-22-33-44-55-66
+        -colon 	11:22:33:44:55:66
+        -dot	1122.3344.5566
+    :return: mac-address with the specified format
+    ---
+    >>>mac = mac_format('1A2b3c4D5E6F', 'dot')
+    >>>print(mac)
+    """
+    # Set format
+    form = {
+        'none': lambda x: x.replace('.', '').replace('-', '').replace(':', '').lower(),
+        'hypen': lambda x: '-'.join([x[i:i+2] for i in range(0, len(x), 2)]).replace('.', '').replace(':', '').lower(),
+        'colon': lambda x: ':'.join([x[i:i+2] for i in range(0, len(x), 2)]).replace('.', '').replace('-', '').lower(),
+        'dot': lambda x: '.'.join([x[i:i+4] for i in range(0, len(x), 4)]).replace(':', '').replace('-', '').lower()
+    }
+    # Get format
+    try:
+        return form.get(mac_format)(mac_address)
+    except TypeError:
+        print('ERROR: "{0}" format not available. Available: none, hypen, colon, dot.'.format(mac_format))
+        return form.get('none')(mac_address)
+
+
 def connect_client(client, user, password):
     """
     Connect to client with WINRM protocol
@@ -833,7 +862,8 @@ if __name__ == '__main__':
                 try:
                     new_config(arguments.new_conf)
                 except FileNotFoundError as err:
-                    print('I was unable to write the file: {0}'.format(err))
+                    print('ERROR: I was unable to write the file: {0}'.format(err))
+                    exit(2)
             else:
                 print('Configuration file exists: {0}.'.format(arguments.new_conf))
                 # Exists? Overwrite?
@@ -896,10 +926,12 @@ if __name__ == '__main__':
                                            list(cfg['VMAM']['vlan_group_id'].values()),
                                            cfg['LDAP']['other_group']))
                 except FileNotFoundError as err:
-                    print('I was unable to read the file: {0}'.format(err))
+                    print('ERROR: I was unable to read the file: {0}'.format(err))
                     exit(2)
             else:
-                print('Configuration file not exists: {0}. See "vmam config --new" option.'.format(arguments.get_conf))
+                print('ERROR: Configuration file not exists: {0}. See "vmam config --new" option.'.format(
+                    arguments.get_conf))
+                exit(3)
 
 
     def cli_mac(arguments):
@@ -958,6 +990,7 @@ if __name__ == '__main__':
                 except Exception as err:
                     print('ERROR:', err)
                     wt.error(err)
+                    exit(8)
                 wt.info('Add mac-address {0} on LDAP servers {1} in {2} VLAN group.'.format(
                     dn, ','.join(cfg['LDAP']['servers']), vlanid))
             else:
@@ -995,6 +1028,7 @@ if __name__ == '__main__':
             except Exception as err:
                 print('ERROR:', err)
                 wt.error(err)
+                exit(16)
             # Custom group
             try:
                 debugger(arguments.verbose, wt, 'Verify custom groups {0} to user {1}'.format(
@@ -1018,6 +1052,7 @@ if __name__ == '__main__':
             except Exception as err:
                 print('ERROR:', err)
                 wt.error(err)
+                exit(17)
             # Check if other VLAN groups are assigned to the user
             debugger(arguments.verbose, wt, 'Verify if other VLAN groups are assigned to the user {0}'.format(dn))
             try:
@@ -1039,6 +1074,9 @@ if __name__ == '__main__':
             except Exception as err:
                 print('ERROR:', err)
                 wt.error(err)
+                exit(18)
+            print('Mac-address user {0} successfully created'.format(mac))
+            wt.info('Mac-address user {0} successfully created'.format(mac))
         elif arguments.disable:
             ...
         elif arguments.remove:
