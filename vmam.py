@@ -1008,6 +1008,13 @@ if __name__ == '__main__':
                 wt.error(err)
                 exit(9)
             # Enable user
+            try:
+                debugger(arguments.verbose, wt, 'Enable user {0}'.format(dn))
+                set_user(bind, dn, pwdlastset=-1, useraccountcontrol=66048)
+            except Exception as err:
+                print('ERROR:', err)
+                wt.error(err)
+                exit(10)
             # Add VLAN and custom LDAP group
             # VLAN-ID group
             try:
