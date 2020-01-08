@@ -950,7 +950,7 @@ if __name__ == '__main__':
         check_config(arguments.conf)
         # Check actions
         if arguments.add:
-            mac = ''.join(arguments.add)
+            mac = mac_format(''.join(arguments.add), cfg['VMAM']['mac_format'])
             vlanid = arguments.vlanid[0]
             dn = 'cn={0},{1}'.format(mac, cfg['LDAP']['mac_user_base_dn'])
             print('Add mac-address {0} on LDAP servers {1} in {2} VLAN group.'.format(
@@ -998,6 +998,16 @@ if __name__ == '__main__':
                     ret[0].get('dn'), ','.join(cfg['LDAP']['servers'])))
                 print('Mac address {0} already exists on LDAP servers {1}'.format(
                     ret[0].get('dn'), ','.join(cfg['LDAP']['servers'])))
+            # Set password
+            try:
+                debugger(arguments.verbose, wt, 'Set password to user {0}'.format(dn))
+                ldap_v = check_ldap_version(bind, cfg['LDAP']['user_base_dn'])
+                set_user_password(bind, dn, mac, ldap_version=ldap_v)
+            except Exception as err:
+                print('ERROR:', err)
+                wt.error(err)
+                exit(9)
+            # Enable user
             # Add VLAN and custom LDAP group
             # VLAN-ID group
             try:
