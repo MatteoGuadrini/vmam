@@ -683,11 +683,11 @@ def string_to_datetime(string):
         return False
 
 
-def mac_format(mac_address, mac_format):
+def mac_format(mac_address, format_mac):
     """
     Format mac-address with the specified format
     :param mac_address: mac-address in any format
-    :param mac_format: mac format are (default=none):
+    :param format_mac: mac format are (default=none):
         -none 	112233445566
         -hypen 	11-22-33-44-55-66
         -colon 	11:22:33:44:55:66
@@ -706,9 +706,9 @@ def mac_format(mac_address, mac_format):
     }
     # Get format
     try:
-        return form.get(mac_format)(mac_address)
+        return form.get(format_mac)(mac_address)
     except TypeError:
-        print('ERROR: "{0}" format not available. Available: none, hypen, colon, dot.'.format(mac_format))
+        print('ERROR: "{0}" format not available. Available: none, hypen, colon, dot.'.format(format_mac))
         return form.get('none')(mac_address)
 
 
@@ -1003,18 +1003,19 @@ if __name__ == '__main__':
                 debugger(arguments.verbose, wt, 'Set password to user {0}'.format(dn))
                 ldap_v = check_ldap_version(bind, cfg['LDAP']['user_base_dn'])
                 set_user_password(bind, dn, mac, ldap_version=ldap_v)
+                if ldap_v == 'MS-LDAP':
+                    # Enable user
+                    try:
+                        debugger(arguments.verbose, wt, 'Enable user {0}'.format(dn))
+                        set_user(bind, dn, pwdlastset=-1, useraccountcontrol=66048)
+                    except Exception as err:
+                        print('ERROR:', err)
+                        wt.error(err)
+                        exit(10)
             except Exception as err:
                 print('ERROR:', err)
                 wt.error(err)
                 exit(9)
-            # Enable user
-            try:
-                debugger(arguments.verbose, wt, 'Enable user {0}'.format(dn))
-                set_user(bind, dn, pwdlastset=-1, useraccountcontrol=66048)
-            except Exception as err:
-                print('ERROR:', err)
-                wt.error(err)
-                exit(10)
             # Add VLAN and custom LDAP group
             # VLAN-ID group
             try:
