@@ -957,7 +957,6 @@ if __name__ == '__main__':
         if arguments.add:
             mac = mac_format(''.join(arguments.add), cfg['VMAM']['mac_format'])
             vlanid = arguments.vlanid[0]
-            dn = 'cn={0},{1}'.format(mac, cfg['LDAP']['mac_user_base_dn'])
             print('Add mac-address {0} on LDAP servers {1} in {2} VLAN group'.format(
                 mac, ','.join(cfg['LDAP']['servers']), vlanid))
             debugger(arguments.verbose, wt, 'Add mac-address {0} on LDAP servers {1} in {2} VLAN group'.format(
@@ -969,6 +968,9 @@ if __name__ == '__main__':
             debugger(arguments.verbose, wt, 'Bind on LDAP servers {0} with user {1}'.format(
                 ','.join(cfg['LDAP']['servers']), cfg['LDAP']['bind_user']))
             bind = bind_ldap(srv, cfg['LDAP']['bind_user'], cfg['LDAP']['bind_pwd'], tls=cfg['LDAP']['tls'])
+            ldap_v = check_ldap_version(bind, cfg['LDAP']['user_base_dn'])
+            ids = 'cn' if ldap_v == 'MS-LDAP' else 'uid'
+            dn = '{0}={1},{2}'.format(ids, mac, cfg['LDAP']['mac_user_base_dn'])
             # Query: check if mac-address exist
             debugger(arguments.verbose, wt, 'Exist mac-address {0} on LDAP servers {1}?'.format(
                 mac, ','.join(cfg['LDAP']['servers'])))
@@ -1006,7 +1008,6 @@ if __name__ == '__main__':
             # Set password
             try:
                 debugger(arguments.verbose, wt, 'Set password to user {0}'.format(dn))
-                ldap_v = check_ldap_version(bind, cfg['LDAP']['user_base_dn'])
                 set_user_password(bind, dn, mac, ldap_version=ldap_v)
                 if ldap_v == 'MS-LDAP':
                     # Enable user
@@ -1115,6 +1116,9 @@ if __name__ == '__main__':
             debugger(arguments.verbose, wt, 'Bind on LDAP servers {0} with user {1}'.format(
                 ','.join(cfg['LDAP']['servers']), cfg['LDAP']['bind_user']))
             bind = bind_ldap(srv, cfg['LDAP']['bind_user'], cfg['LDAP']['bind_pwd'], tls=cfg['LDAP']['tls'])
+            ldap_v = check_ldap_version(bind, cfg['LDAP']['user_base_dn'])
+            ids = 'cn' if ldap_v == 'MS-LDAP' else 'uid'
+            dn = '{0}={1},{2}'.format(ids, mac, cfg['LDAP']['mac_user_base_dn'])
             # Query: check if mac-address exist
             debugger(arguments.verbose, wt, 'Exist mac-address {0} on LDAP servers {1}?'.format(
                 mac, ','.join(cfg['LDAP']['servers'])))
