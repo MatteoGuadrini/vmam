@@ -1127,7 +1127,10 @@ if __name__ == '__main__':
                 force = confirm('Do you want to disable {0} mac-address?'.format(mac)) if not arguments.force else True
                 if force:
                     try:
-                        set_user(bind, dn, useraccountcontrol=514)
+                        if ldap_v == 'MS-LDAP':
+                            set_user(bind, dn, useraccountcontrol=514)
+                        else:
+                            set_user(bind, dn, nsaccountlock='True')
                     except Exception as err:
                         print('ERROR:', err)
                         wt.error(err)
