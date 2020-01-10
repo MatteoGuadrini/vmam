@@ -1020,23 +1020,6 @@ if __name__ == '__main__':
                     ret[0].get('dn'), ','.join(cfg['LDAP']['servers'])))
                 print('Mac address {0} already exists on LDAP servers {1}'.format(
                     ret[0].get('dn'), ','.join(cfg['LDAP']['servers'])))
-            # Set password
-            try:
-                debugger(arguments.verbose, wt, 'Set password to user {0}'.format(dn))
-                set_user_password(bind, dn, mac, ldap_version=ldap_v)
-                if ldap_v == 'MS-LDAP':
-                    # Enable user
-                    try:
-                        debugger(arguments.verbose, wt, 'Enable user {0}'.format(dn))
-                        set_user(bind, dn, pwdlastset=-1, useraccountcontrol=66048)
-                    except Exception as err:
-                        print('ERROR:', err)
-                        wt.error(err)
-                        exit(10)
-            except Exception as err:
-                print('ERROR:', err)
-                wt.error(err)
-                exit(9)
             # Add VLAN and custom LDAP group
             # VLAN-ID group
             try:
@@ -1114,6 +1097,23 @@ if __name__ == '__main__':
                 print('ERROR:', err)
                 wt.error(err)
                 exit(18)
+            # Set password
+            try:
+                debugger(arguments.verbose, wt, 'Set password to user {0}'.format(dn))
+                set_user_password(bind, dn, mac, ldap_version=ldap_v)
+                if ldap_v == 'MS-LDAP':
+                    # Enable user
+                    try:
+                        debugger(arguments.verbose, wt, 'Enable user {0}'.format(dn))
+                        set_user(bind, dn, pwdlastset=-1, useraccountcontrol=66048)
+                    except Exception as err:
+                        print('ERROR:', err)
+                        wt.error(err)
+                        exit(10)
+            except Exception as err:
+                print('ERROR:', err)
+                wt.error(err)
+                exit(9)
             print('Mac-address user {0} successfully created'.format(mac))
             wt.info('Mac-address user {0} successfully created'.format(mac))
             # Unbind LDAP connection
