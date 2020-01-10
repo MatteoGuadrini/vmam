@@ -418,7 +418,7 @@ def bind_ldap(server, user, password, *, tls=False):
     :param tls: if True, start tls connection
     :return: LDAP bind object
     ---
-    >>>conn = connect_ldap('dc1.foo.bar')
+    >>>conn = connect_ldap(['dc1.foo.bar'])
     >>>bind = bind_ldap(conn, r'domain\\user', 'password', tls=True)
     >>>print(bind)
     """
@@ -439,7 +439,7 @@ def unbind_ldap(bind_object):
     :param bind_object: LDAP bind object
     :return: None
     ---
-    >>>conn = connect_ldap('dc1.foo.bar')
+    >>>conn = connect_ldap(['dc1.foo.bar'])
     >>>bind = bind_ldap(conn, r'domain\\user', 'password', tls=True)
     >>>bind.unbind()
     """
@@ -455,7 +455,7 @@ def query_ldap(bind_object, base_search, attributes, **filters):
     :param filters: dictionary of ldap query
     :return: query result list
     ---
-    >>>conn = connect_ldap('dc1.foo.bar')
+    >>>conn = connect_ldap(['dc1.foo.bar'])
     >>>bind = bind_ldap(conn, r'domain\\user', 'password', tls=True)
     >>>ret = query_ldap(bind, 'dc=foo,dc=bar', ['sn', 'givenName'], objectClass='person', samAccountName='person1')
     >>>print(ret)
@@ -480,7 +480,7 @@ def check_ldap_version(bind_object, base_search):
     :param base_search: distinguishedName of LDAP base search
     :return: LDAP version
     ---
-    >>>conn = connect_ldap('dc1.foo.bar')
+    >>>conn = connect_ldap(['dc1.foo.bar'])
     >>>bind = bind_ldap(conn, r'domain\\user', 'password', tls=True)
     >>>ret = check_ldap_version(bind, 'dc=foo,dc=bar')
     >>>print(ret)
@@ -509,7 +509,7 @@ def new_user(bind_object, username, **attributes):
     :param attributes: Dictionary attributes
     :return: LDAP operation result
     ---
-    >>>conn = connect_ldap('dc1.foo.bar')
+    >>>conn = connect_ldap(['dc1.foo.bar'])
     >>>bind = bind_ldap(conn, r'domain\\user', 'password', tls=True)
     >>>new_user(bind, 'CN=ex_user1,OU=User_ex,DC=foo,DC=bar', givenName='User 1', sn='Example')
     """
@@ -530,7 +530,7 @@ def set_user(bind_object, username, **attributes):
     :param attributes: Dictionary attributes
     :return: LDAP operation result
     ---
-    >>>conn = connect_ldap('dc1.foo.bar')
+    >>>conn = connect_ldap(['dc1.foo.bar'])
     >>>bind = bind_ldap(conn, r'domain\\user', 'password', tls=True)
     >>>set_user(bind, 'CN=ex_user1,OU=User_ex,DC=foo,DC=bar', givenName='User 1', sn='Example')
     """
@@ -542,6 +542,21 @@ def set_user(bind_object, username, **attributes):
         username,
         attributes
     )
+    return bind_object.result
+
+
+def delete_user(bind_object, username):
+    """
+    Modify an exists LDAP user
+    :param bind_object: LDAP bind object
+    :param username: distinguishedName of user
+    :return: LDAP operation result
+    ---
+    >>>conn = connect_ldap(['dc1.foo.bar'])
+    >>>bind = bind_ldap(conn, r'domain\\user', 'password', tls=True)
+    >>>delete_user(bind, 'CN=ex_user1,OU=User_ex,DC=foo,DC=bar')
+    """
+    bind_object.delete(username)
     return bind_object.result
 
 
@@ -1105,7 +1120,6 @@ if __name__ == '__main__':
             unbind_ldap(bind)
         elif arguments.disable:
             mac = mac_format(''.join(arguments.disable), cfg['VMAM']['mac_format'])
-            dn = 'cn={0},{1}'.format(mac, cfg['LDAP']['mac_user_base_dn'])
             print('Disable mac-address {0} on LDAP servers {1}'.format(mac, ','.join(cfg['LDAP']['servers'])))
             debugger(arguments.verbose, wt, 'Disable mac-address {0} on LDAP servers {1}'.format(
                 mac, ','.join(cfg['LDAP']['servers'])))
@@ -1134,12 +1148,14 @@ if __name__ == '__main__':
                     except Exception as err:
                         print('ERROR:', err)
                         wt.error(err)
-                        exit(17)
+                        exit(11)
                     print('Mac-address {0} successfully disabled'.format(mac))
                     wt.info('Mac-address {0} successfully disabled'.format(mac))
             else:
                 print('ERROR: Mac-address {0} does not exists'.format(mac))
                 exit(8)
+            # Unbind LDAP connection
+            unbind_ldap(bind)
         elif arguments.remove:
             ...
 
