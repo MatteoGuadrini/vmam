@@ -1157,7 +1157,40 @@ if __name__ == '__main__':
             # Unbind LDAP connection
             unbind_ldap(bind)
         elif arguments.remove:
-            ...
+            mac = mac_format(''.join(arguments.remove), cfg['VMAM']['mac_format'])
+            print('Delete mac-address {0} on LDAP servers {1}'.format(mac, ','.join(cfg['LDAP']['servers'])))
+            debugger(arguments.verbose, wt, 'Delete mac-address {0} on LDAP servers {1}'.format(
+                mac, ','.join(cfg['LDAP']['servers'])))
+            # Connect LDAP servers
+            debugger(arguments.verbose, wt, 'Connect to LDAP servers {0}'.format(','.join(cfg['LDAP']['servers'])))
+            srv = connect_ldap(cfg['LDAP']['servers'], ssl=cfg['LDAP']['ssl'])
+            # Bind LDAP server
+            debugger(arguments.verbose, wt, 'Bind on LDAP servers {0} with user {1}'.format(
+                ','.join(cfg['LDAP']['servers']), cfg['LDAP']['bind_user']))
+            bind = bind_ldap(srv, cfg['LDAP']['bind_user'], cfg['LDAP']['bind_pwd'], tls=cfg['LDAP']['tls'])
+            ldap_v = check_ldap_version(bind, cfg['LDAP']['user_base_dn'])
+            ids = 'cn' if ldap_v == 'MS-LDAP' else 'uid'
+            dn = '{0}={1},{2}'.format(ids, mac, cfg['LDAP']['mac_user_base_dn'])
+            # Query: check if mac-address exist
+            debugger(arguments.verbose, wt, 'Exist mac-address {0} on LDAP servers {1}?'.format(
+                mac, ','.join(cfg['LDAP']['servers'])))
+            ret = query_ldap(bind, cfg['LDAP']['user_base_dn'], ['samaccountname'], samaccountname=mac)
+            if ret[0].get('dn'):
+                force = confirm('Do you want to delete {0} mac-address?'.format(mac)) if not arguments.force else True
+                if force:
+                    try:
+                        delete_user(bind, dn)
+                    except Exception as err:
+                        print('ERROR:', err)
+                        wt.error(err)
+                        exit(12)
+                    print('Mac-address {0} successfully deleted'.format(mac))
+                    wt.info('Mac-address {0} successfully deleted'.format(mac))
+            else:
+                print('ERROR: Mac-address {0} does not exists'.format(mac))
+                exit(8)
+            # Unbind LDAP connection
+            unbind_ldap(bind)
 
 
     def main():
