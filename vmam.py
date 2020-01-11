@@ -145,6 +145,10 @@ def check_module(module):
 
 # endregion
 
+# region Global variable
+VERSION = '0.1.0'
+# endregion
+
 # region Functions
 
 
@@ -290,7 +294,7 @@ def new_config(path=(get_platform()['conf_default'])):
             'max_computer_sync': 0,
             'time_computer_sync': '1m',
             'verify_attrib': ['memberof', 'cn'],
-            'write_attrib': ['extensionattribute1', 'extensionattribute2'],
+            'write_attrib': 'extensionattribute1',
             'match': 'like|exactly',
             'add_group_type': ['user', 'computer'],
             'other_group': ['second_grp', 'third_grp']
@@ -414,14 +418,14 @@ def bind_ldap(server, user, password, *, tls=False):
     :param tls: if True, start tls connection
     :return: LDAP bind object
     ---
-    >>>conn = connect_ldap('dc1.foo.bar')
+    >>>conn = connect_ldap(['dc1.foo.bar'])
     >>>bind = bind_ldap(conn, r'domain\\user', 'password', tls=True)
     >>>print(bind)
     """
     auto_bind = ldap3.AUTO_BIND_TLS_BEFORE_BIND if tls else ldap3.AUTO_BIND_NONE
     # Create a bind connection with user and password
     bind_connection = ldap3.Connection(server, user='{0}'.format(user), password='{0}'.format(password),
-                                       auto_bind=auto_bind)
+                                       auto_bind=auto_bind, raise_exceptions=True)
     # Check LDAP bind connection
     if bind_connection.bind():
         return bind_connection
@@ -435,7 +439,7 @@ def unbind_ldap(bind_object):
     :param bind_object: LDAP bind object
     :return: None
     ---
-    >>>conn = connect_ldap('dc1.foo.bar')
+    >>>conn = connect_ldap(['dc1.foo.bar'])
     >>>bind = bind_ldap(conn, r'domain\\user', 'password', tls=True)
     >>>bind.unbind()
     """
@@ -451,7 +455,7 @@ def query_ldap(bind_object, base_search, attributes, **filters):
     :param filters: dictionary of ldap query
     :return: query result list
     ---
-    >>>conn = connect_ldap('dc1.foo.bar')
+    >>>conn = connect_ldap(['dc1.foo.bar'])
     >>>bind = bind_ldap(conn, r'domain\\user', 'password', tls=True)
     >>>ret = query_ldap(bind, 'dc=foo,dc=bar', ['sn', 'givenName'], objectClass='person', samAccountName='person1')
     >>>print(ret)
@@ -476,7 +480,7 @@ def check_ldap_version(bind_object, base_search):
     :param base_search: distinguishedName of LDAP base search
     :return: LDAP version
     ---
-    >>>conn = connect_ldap('dc1.foo.bar')
+    >>>conn = connect_ldap(['dc1.foo.bar'])
     >>>bind = bind_ldap(conn, r'domain\\user', 'password', tls=True)
     >>>ret = check_ldap_version(bind, 'dc=foo,dc=bar')
     >>>print(ret)
@@ -505,7 +509,7 @@ def new_user(bind_object, username, **attributes):
     :param attributes: Dictionary attributes
     :return: LDAP operation result
     ---
-    >>>conn = connect_ldap('dc1.foo.bar')
+    >>>conn = connect_ldap(['dc1.foo.bar'])
     >>>bind = bind_ldap(conn, r'domain\\user', 'password', tls=True)
     >>>new_user(bind, 'CN=ex_user1,OU=User_ex,DC=foo,DC=bar', givenName='User 1', sn='Example')
     """
@@ -526,7 +530,7 @@ def set_user(bind_object, username, **attributes):
     :param attributes: Dictionary attributes
     :return: LDAP operation result
     ---
-    >>>conn = connect_ldap('dc1.foo.bar')
+    >>>conn = connect_ldap(['dc1.foo.bar'])
     >>>bind = bind_ldap(conn, r'domain\\user', 'password', tls=True)
     >>>set_user(bind, 'CN=ex_user1,OU=User_ex,DC=foo,DC=bar', givenName='User 1', sn='Example')
     """
@@ -538,6 +542,21 @@ def set_user(bind_object, username, **attributes):
         username,
         attributes
     )
+    return bind_object.result
+
+
+def delete_user(bind_object, username):
+    """
+    Modify an exists LDAP user
+    :param bind_object: LDAP bind object
+    :param username: distinguishedName of user
+    :return: LDAP operation result
+    ---
+    >>>conn = connect_ldap(['dc1.foo.bar'])
+    >>>bind = bind_ldap(conn, r'domain\\user', 'password', tls=True)
+    >>>delete_user(bind, 'CN=ex_user1,OU=User_ex,DC=foo,DC=bar')
+    """
+    bind_object.delete(username)
     return bind_object.result
 
 
@@ -579,12 +598,32 @@ def add_to_group(bind_object, groupname, members):
     ---
     >>>conn = connect_ldap('dc1.foo.bar')
     >>>bind = bind_ldap(conn, r'domain\\user', 'password', tls=True)
-    >>>set_user(bind, 'CN=ex_group1,OU=Groups,DC=foo,DC=bar', givenName='User 1', sn='Example')
+    >>>add_to_group(bind, 'CN=ex_group1,OU=Groups,DC=foo,DC=bar', 'CN=ex_user1,CN=Users,DC=office,DC=bol')
     """
     # Modify group members
     bind_object.modify(
         groupname,
         {'member': (ldap3.MODIFY_ADD, members)}
+    )
+    return bind_object.result
+
+
+def remove_to_group(bind_object, groupname, members):
+    """
+    Remove a member of exists LDAP group
+    :param bind_object: LDAP bind object
+    :param groupname: distinguishedName of group
+    :param members: List of a removed members
+    :return: LDAP operation result
+    ---
+    >>>conn = connect_ldap('dc1.foo.bar')
+    >>>bind = bind_ldap(conn, r'domain\\user', 'password', tls=True)
+    >>>remove_to_group(bind, 'CN=ex_group1,OU=Groups,DC=foo,DC=bar', 'CN=ex_user1,CN=Users,DC=office,DC=bol')
+    """
+    # Modify group members
+    bind_object.modify(
+        groupname,
+        {'member': (ldap3.MODIFY_DELETE, members)}
     )
     return bind_object.result
 
@@ -663,6 +702,35 @@ def string_to_datetime(string):
         return False
 
 
+def mac_format(mac_address, format_mac):
+    """
+    Format mac-address with the specified format
+    :param mac_address: mac-address in any format
+    :param format_mac: mac format are (default=none):
+        -none 	112233445566
+        -hypen 	11-22-33-44-55-66
+        -colon 	11:22:33:44:55:66
+        -dot	1122.3344.5566
+    :return: mac-address with the specified format
+    ---
+    >>>mac = mac_format('1A2b3c4D5E6F', 'dot')
+    >>>print(mac)
+    """
+    # Set format
+    form = {
+        'none': lambda x: x.replace('.', '').replace('-', '').replace(':', '').lower(),
+        'hypen': lambda x: '-'.join([x[i:i+2] for i in range(0, len(x), 2)]).replace('.', '').replace(':', '').lower(),
+        'colon': lambda x: ':'.join([x[i:i+2] for i in range(0, len(x), 2)]).replace('.', '').replace('-', '').lower(),
+        'dot': lambda x: '.'.join([x[i:i+4] for i in range(0, len(x), 4)]).replace(':', '').replace('-', '').lower()
+    }
+    # Get format
+    try:
+        return form.get(format_mac)(mac_address)
+    except TypeError:
+        print('ERROR: "{0}" format not available. Available: none, hypen, colon, dot.'.format(format_mac))
+        return form.get('none')(mac_address)
+
+
 def connect_client(client, user, password):
     """
     Connect to client with WINRM protocol
@@ -731,7 +799,7 @@ if __name__ == '__main__':
         # Create a principal parser
         parser_object = argparse.ArgumentParser(prog='vmam', description='VLAN Mac-address Authentication Manager',
                                                 parents=[common_parser])
-        parser_object.add_argument('--version', '-V', action='version', version='%(prog)s 0.1.0')
+        parser_object.add_argument('--version', '-V', action='version', version='%(prog)s ' + VERSION)
         # Create sub_parser "action"
         action_parser = parser_object.add_subparsers(title='action', description='valid action',
                                                      help='available actions for vmam command', dest='action')
@@ -757,7 +825,7 @@ if __name__ == '__main__':
         mac_parser = action_parser.add_parser('mac', help='vmam manual process options', parents=[common_parser])
         group_mac = mac_parser.add_argument_group(title='manual options')
         group_mac_mutually = group_mac.add_mutually_exclusive_group(required=True)
-        group_mac_mutually.add_argument('--add', '-a', help='add mac-address to LDAP server', dest='add',
+        group_mac_mutually.add_argument('--add', '-a', help='add/modify mac-address to LDAP server', dest='add',
                                         action='store',
                                         nargs=1, metavar='MAC_ADDR')
         group_mac_mutually.add_argument('--remove', '-r', help='remove mac-address to LDAP server', dest='remove',
@@ -768,7 +836,7 @@ if __name__ == '__main__':
                                nargs='?', default=get_platform()['conf_default'], metavar='CONF_FILE')
         group_mac.add_argument('--force', '-f', help='force action', dest='force', action='store_true')
         group_mac.add_argument('--vlan-id', '-i', help='vlan-id number', dest='vlanid', action='store',
-                               nargs=1, metavar='VLAN_ID', type=int, required=True)
+                               nargs=1, metavar='VLAN_ID', type=int, required=('--add' in sys.argv or '-a' in sys.argv))
         # Return parser object
         return parser_object
 
@@ -813,7 +881,8 @@ if __name__ == '__main__':
                 try:
                     new_config(arguments.new_conf)
                 except FileNotFoundError as err:
-                    print('I was unable to write the file: {0}'.format(err))
+                    print('ERROR: I was unable to write the file: {0}'.format(err))
+                    exit(2)
             else:
                 print('Configuration file exists: {0}.'.format(arguments.new_conf))
                 # Exists? Overwrite?
@@ -822,7 +891,8 @@ if __name__ == '__main__':
                         os.remove(arguments.new_conf)
                         new_config(arguments.new_conf)
                     except OSError as err:
-                        print('I was unable to overwrite the file: {0}'.format(err))
+                        print('ERROR: I was unable to overwrite the file: {0}'.format(err))
+                        exit(2)
         elif arguments.get_conf:
             # Read configuration file
             if os.path.exists(arguments.get_conf):
@@ -876,10 +946,12 @@ if __name__ == '__main__':
                                            list(cfg['VMAM']['vlan_group_id'].values()),
                                            cfg['LDAP']['other_group']))
                 except FileNotFoundError as err:
-                    print('I was unable to read the file: {0}'.format(err))
-                    exit(1)
+                    print('ERROR: I was unable to read the file: {0}'.format(err))
+                    exit(2)
             else:
-                print('Configuration file not exists: {0}. See "vmam config --new" option.'.format(arguments.get_conf))
+                print('ERROR: Configuration file not exists: {0}. See "vmam config --new" option.'.format(
+                    arguments.get_conf))
+                exit(3)
 
 
     def cli_mac(arguments):
@@ -894,16 +966,15 @@ if __name__ == '__main__':
         wt = logwriter(cfg['VMAM']['log'])
         debugger(arguments.verbose, wt, 'Start in manual mode.')
         # Check mandatory entry on configuration file
-        debugger(arguments.verbose, wt, 'Check mandatory fields on configuration file {0}.'.format(arguments.conf))
+        debugger(arguments.verbose, wt, 'Check mandatory fields on configuration file {0}'.format(arguments.conf))
         check_config(arguments.conf)
         # Check actions
         if arguments.add:
-            mac = ''.join(arguments.add)
+            mac = mac_format(''.join(arguments.add), cfg['VMAM']['mac_format'])
             vlanid = arguments.vlanid[0]
-            dn = 'cn={0},{1}'.format(mac, cfg['LDAP']['mac_user_base_dn'])
-            print('Add mac-address {0} on LDAP servers {1} in {2} VLAN group.'.format(
+            print('Add mac-address {0} on LDAP servers {1} in {2} VLAN group'.format(
                 mac, ','.join(cfg['LDAP']['servers']), vlanid))
-            debugger(arguments.verbose, wt, 'Add mac-address {0} on LDAP servers {1} in {2} VLAN group.'.format(
+            debugger(arguments.verbose, wt, 'Add mac-address {0} on LDAP servers {1} in {2} VLAN group'.format(
                 mac, ','.join(cfg['LDAP']['servers']), vlanid))
             # Connect LDAP servers
             debugger(arguments.verbose, wt, 'Connect to LDAP servers {0}'.format(','.join(cfg['LDAP']['servers'])))
@@ -912,6 +983,9 @@ if __name__ == '__main__':
             debugger(arguments.verbose, wt, 'Bind on LDAP servers {0} with user {1}'.format(
                 ','.join(cfg['LDAP']['servers']), cfg['LDAP']['bind_user']))
             bind = bind_ldap(srv, cfg['LDAP']['bind_user'], cfg['LDAP']['bind_pwd'], tls=cfg['LDAP']['tls'])
+            ldap_v = check_ldap_version(bind, cfg['LDAP']['user_base_dn'])
+            ids = 'cn' if ldap_v == 'MS-LDAP' else 'uid'
+            dn = '{0}={1},{2}'.format(ids, mac, cfg['LDAP']['mac_user_base_dn'])
             # Query: check if mac-address exist
             debugger(arguments.verbose, wt, 'Exist mac-address {0} on LDAP servers {1}?'.format(
                 mac, ','.join(cfg['LDAP']['servers'])))
@@ -924,49 +998,199 @@ if __name__ == '__main__':
                          'sn': mac,
                          'samaccountname': mac,
                          'userprincipalname': '{0}@{1}'.format(mac, cfg['LDAP']['domain']),
-                         'employeetype': 'VMAM_MANUAL',
                          'description': mac}
+                # Check write_attrib on configuration file
+                if cfg['LDAP']['write_attrib']:
+                    attrs[cfg['LDAP']['write_attrib']] = 'VMAM_MANUAL'
+                else:
+                    attrs['employeetype'] = 'VMAM_MANUAL'
                 # Create mac-address user
                 try:
                     new_user(bind, dn, **attrs)
-                    print('Mac-address {0} created on LDAP servers {1} in {2} VLAN group.'.format(
+                    print('Mac-address {0} created on LDAP servers {1} in {2} VLAN group'.format(
                         dn, ','.join(cfg['LDAP']['servers']), vlanid))
                 except Exception as err:
                     print('ERROR:', err)
                     wt.error(err)
+                    exit(8)
                 wt.info('Add mac-address {0} on LDAP servers {1} in {2} VLAN group.'.format(
                     dn, ','.join(cfg['LDAP']['servers']), vlanid))
             else:
-                # Query: verify LDAP group is different
                 debugger(arguments.verbose, wt, 'Mac-address {0} exists on LDAP servers {1}'.format(
                     ret[0].get('dn'), ','.join(cfg['LDAP']['servers'])))
+                print('Mac address {0} already exists on LDAP servers {1}'.format(
+                    ret[0].get('dn'), ','.join(cfg['LDAP']['servers'])))
             # Add VLAN and custom LDAP group
+            # VLAN-ID group
             try:
-                # VLAN-ID group
                 debugger(arguments.verbose, wt, 'Verify VLAN group {0} to user {1}'.format(
                     vlanid, dn))
                 for key, value in cfg['VMAM']['vlan_group_id'].items():
                     # Check exist VLAN-ID in configuration file
                     if vlanid == key:
                         g = query_ldap(bind, cfg['LDAP']['user_base_dn'], ['member', 'distinguishedname'],
-                                         objectclass='group', name=value)
+                                       objectclass='group', name=value)
                         u = query_ldap(bind, cfg['LDAP']['user_base_dn'], ['memberof'],
                                        objectclass='user', name=mac)
                         gdn = g[0]['dn']
                         umember = u[0]['attributes']['memberof']
                         # Add VLAN LDAP group to user mac address
-                        if not gdn in umember:
+                        if gdn not in umember:
                             add_to_group(bind, gdn, dn)
                             print('Add VLAN group {0} to user {1}'.format(gdn, dn))
                             wt.info('Add VLAN group {0} to user {1}'.format(gdn, dn))
+                        else:
+                            debugger(arguments.verbose, wt, 'VLAN group {0} already added to user {1}'.format(
+                                cfg['VMAM']['vlan_group_id'][vlanid], dn))
                         break
+                else:
+                    print('VLAN-ID group {0} does not exist. See the configuration file {1}'.format(
+                        vlanid, arguments.conf))
+                    exit(4)
             except Exception as err:
                 print('ERROR:', err)
                 wt.error(err)
+                exit(16)
+            # Custom group
+            try:
+                debugger(arguments.verbose, wt, 'Verify custom groups {0} to user {1}'.format(
+                    ','.join(cfg['LDAP']['other_group']), dn))
+                for group in cfg['LDAP']['other_group']:
+                    g = query_ldap(bind, cfg['LDAP']['user_base_dn'], ['member', 'distinguishedname'],
+                                   objectclass='group', name=group)
+                    u = query_ldap(bind, cfg['LDAP']['user_base_dn'], ['memberof'],
+                                   objectclass='user', name=mac)
+                    gdn = g[0]['dn']
+                    umember = u[0]['attributes']['memberof']
+                    # Add VLAN LDAP group to user mac address
+                    if gdn not in umember:
+                        add_to_group(bind, gdn, dn)
+                        print('Add custom groups {0} to user {1}'.format(gdn, dn))
+                        wt.info('Add custom groups {0} to user {1}'.format(gdn, dn))
+                    else:
+                        debugger(arguments.verbose, wt, 'Custom groups {0} already added to user {1}'.format(
+                            ','.join(cfg['LDAP']['other_group']), dn))
+                    break
+            except Exception as err:
+                print('ERROR:', err)
+                wt.error(err)
+                exit(17)
+            # Check if other VLAN groups are assigned to the user
+            debugger(arguments.verbose, wt, 'Verify if other VLAN groups are assigned to the user {0}'.format(dn))
+            try:
+                # Get all VLAN group from user
+                for key, value in cfg['VMAM']['vlan_group_id'].items():
+                    # Check if VLAN-ID isn't equal
+                    if vlanid != key:
+                        g = query_ldap(bind, cfg['LDAP']['user_base_dn'], ['member', 'distinguishedname'],
+                                       objectclass='group', name=value)
+                        u = query_ldap(bind, cfg['LDAP']['user_base_dn'], ['memberof'],
+                                       objectclass='user', name=mac)
+                        gdn = g[0]['dn']
+                        umember = u[0]['attributes']['memberof']
+                        # Remove member of group
+                        if gdn in umember:
+                            remove_to_group(bind, gdn, dn)
+                            print('Remove VLAN group {0} to user {1}'.format(gdn, dn))
+                            wt.info('Remove VLAN group {0} to user {1}'.format(gdn, dn))
+            except Exception as err:
+                print('ERROR:', err)
+                wt.error(err)
+                exit(18)
+            # Set password
+            try:
+                debugger(arguments.verbose, wt, 'Set password to user {0}'.format(dn))
+                set_user_password(bind, dn, mac, ldap_version=ldap_v)
+                if ldap_v == 'MS-LDAP':
+                    # Enable user
+                    try:
+                        debugger(arguments.verbose, wt, 'Enable user {0}'.format(dn))
+                        set_user(bind, dn, pwdlastset=-1, useraccountcontrol=66048)
+                    except Exception as err:
+                        print('ERROR:', err)
+                        wt.error(err)
+                        exit(10)
+            except Exception as err:
+                print('ERROR:', err)
+                wt.error(err)
+                exit(9)
+            print('Mac-address user {0} successfully created'.format(mac))
+            wt.info('Mac-address user {0} successfully created'.format(mac))
+            # Unbind LDAP connection
+            unbind_ldap(bind)
         elif arguments.disable:
-            ...
+            mac = mac_format(''.join(arguments.disable), cfg['VMAM']['mac_format'])
+            print('Disable mac-address {0} on LDAP servers {1}'.format(mac, ','.join(cfg['LDAP']['servers'])))
+            debugger(arguments.verbose, wt, 'Disable mac-address {0} on LDAP servers {1}'.format(
+                mac, ','.join(cfg['LDAP']['servers'])))
+            # Connect LDAP servers
+            debugger(arguments.verbose, wt, 'Connect to LDAP servers {0}'.format(','.join(cfg['LDAP']['servers'])))
+            srv = connect_ldap(cfg['LDAP']['servers'], ssl=cfg['LDAP']['ssl'])
+            # Bind LDAP server
+            debugger(arguments.verbose, wt, 'Bind on LDAP servers {0} with user {1}'.format(
+                ','.join(cfg['LDAP']['servers']), cfg['LDAP']['bind_user']))
+            bind = bind_ldap(srv, cfg['LDAP']['bind_user'], cfg['LDAP']['bind_pwd'], tls=cfg['LDAP']['tls'])
+            ldap_v = check_ldap_version(bind, cfg['LDAP']['user_base_dn'])
+            ids = 'cn' if ldap_v == 'MS-LDAP' else 'uid'
+            dn = '{0}={1},{2}'.format(ids, mac, cfg['LDAP']['mac_user_base_dn'])
+            # Query: check if mac-address exist
+            debugger(arguments.verbose, wt, 'Exist mac-address {0} on LDAP servers {1}?'.format(
+                mac, ','.join(cfg['LDAP']['servers'])))
+            ret = query_ldap(bind, cfg['LDAP']['user_base_dn'], ['samaccountname'], samaccountname=mac)
+            if ret[0].get('dn'):
+                force = confirm('Do you want to disable {0} mac-address?'.format(mac)) if not arguments.force else True
+                if force:
+                    try:
+                        if ldap_v == 'MS-LDAP':
+                            set_user(bind, dn, useraccountcontrol=514)
+                        else:
+                            set_user(bind, dn, nsaccountlock='True')
+                    except Exception as err:
+                        print('ERROR:', err)
+                        wt.error(err)
+                        exit(11)
+                    print('Mac-address {0} successfully disabled'.format(mac))
+                    wt.info('Mac-address {0} successfully disabled'.format(mac))
+            else:
+                print('ERROR: Mac-address {0} does not exists'.format(mac))
+                exit(8)
+            # Unbind LDAP connection
+            unbind_ldap(bind)
         elif arguments.remove:
-            ...
+            mac = mac_format(''.join(arguments.remove), cfg['VMAM']['mac_format'])
+            print('Delete mac-address {0} on LDAP servers {1}'.format(mac, ','.join(cfg['LDAP']['servers'])))
+            debugger(arguments.verbose, wt, 'Delete mac-address {0} on LDAP servers {1}'.format(
+                mac, ','.join(cfg['LDAP']['servers'])))
+            # Connect LDAP servers
+            debugger(arguments.verbose, wt, 'Connect to LDAP servers {0}'.format(','.join(cfg['LDAP']['servers'])))
+            srv = connect_ldap(cfg['LDAP']['servers'], ssl=cfg['LDAP']['ssl'])
+            # Bind LDAP server
+            debugger(arguments.verbose, wt, 'Bind on LDAP servers {0} with user {1}'.format(
+                ','.join(cfg['LDAP']['servers']), cfg['LDAP']['bind_user']))
+            bind = bind_ldap(srv, cfg['LDAP']['bind_user'], cfg['LDAP']['bind_pwd'], tls=cfg['LDAP']['tls'])
+            ldap_v = check_ldap_version(bind, cfg['LDAP']['user_base_dn'])
+            ids = 'cn' if ldap_v == 'MS-LDAP' else 'uid'
+            dn = '{0}={1},{2}'.format(ids, mac, cfg['LDAP']['mac_user_base_dn'])
+            # Query: check if mac-address exist
+            debugger(arguments.verbose, wt, 'Exist mac-address {0} on LDAP servers {1}?'.format(
+                mac, ','.join(cfg['LDAP']['servers'])))
+            ret = query_ldap(bind, cfg['LDAP']['user_base_dn'], ['samaccountname'], samaccountname=mac)
+            if ret[0].get('dn'):
+                force = confirm('Do you want to delete {0} mac-address?'.format(mac)) if not arguments.force else True
+                if force:
+                    try:
+                        delete_user(bind, dn)
+                    except Exception as err:
+                        print('ERROR:', err)
+                        wt.error(err)
+                        exit(12)
+                    print('Mac-address {0} successfully deleted'.format(mac))
+                    wt.info('Mac-address {0} successfully deleted'.format(mac))
+            else:
+                print('ERROR: Mac-address {0} does not exists'.format(mac))
+                exit(8)
+            # Unbind LDAP connection
+            unbind_ldap(bind)
 
 
     def main():
