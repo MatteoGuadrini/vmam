@@ -863,7 +863,7 @@ if __name__ == '__main__':
         actions = {
             'config': cli_config,
             'mac': cli_mac,
-            'start': 'Automatic action'
+            'start': cli_start
         }
         return actions.get(action, 'No action available')
 
@@ -1191,6 +1191,23 @@ if __name__ == '__main__':
                 exit(8)
             # Unbind LDAP connection
             unbind_ldap(bind)
+
+
+    def cli_start(arguments):
+        """
+        Automatic mac-address process
+        :param arguments: Arguments list
+        :return: None
+        """
+        # Read the configuration file
+        cfg = read_config(arguments.conf)
+        # Create log writer
+        wt = logwriter(cfg['VMAM']['log'])
+        debugger(arguments.verbose, wt, 'Start in automatic mode.')
+        # Check mandatory entry on configuration file
+        debugger(arguments.verbose, wt, 'Check mandatory fields on configuration file {0}'.format(arguments.conf))
+        check_config(arguments.conf)
+        debugger(arguments.verbose, wt, 'Start in automatic mode.')
 
 
     def main():
