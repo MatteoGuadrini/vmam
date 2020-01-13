@@ -1207,7 +1207,17 @@ if __name__ == '__main__':
         # Check mandatory entry on configuration file
         debugger(arguments.verbose, wt, 'Check mandatory fields on configuration file {0}'.format(arguments.conf))
         check_config(arguments.conf)
-        debugger(arguments.verbose, wt, 'Start in automatic mode.')
+        debugger(arguments.verbose, wt, 'Connect')
+        # Connect LDAP servers
+        debugger(arguments.verbose, wt, 'Connect to LDAP servers {0}'.format(','.join(cfg['LDAP']['servers'])))
+        srv = connect_ldap(cfg['LDAP']['servers'], ssl=cfg['LDAP']['ssl'])
+        # Bind LDAP server
+        debugger(arguments.verbose, wt, 'Bind on LDAP servers {0} with user {1}'.format(
+            ','.join(cfg['LDAP']['servers']), cfg['LDAP']['bind_user']))
+        bind = bind_ldap(srv, cfg['LDAP']['bind_user'], cfg['LDAP']['bind_pwd'], tls=cfg['LDAP']['tls'])
+        ldap_v = check_ldap_version(bind, cfg['LDAP']['user_base_dn'])
+        ids = 'cn' if ldap_v == 'MS-LDAP' else 'uid'
+
 
 
     def main():
