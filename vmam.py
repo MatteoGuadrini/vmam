@@ -461,10 +461,13 @@ def query_ldap(bind_object, base_search, attributes, **filters):
     >>>print(ret)
     """
     # Init query list
+    fta = ['accountexpires', 'badpasswordtime', 'lastlogoff', 'lastlogon', 'lastlogontimestamp', 'lockoutduration'
+           'lockouttime', 'maxpwdage', 'minpwdage', 'pwdlastset']
     query = ['(&']
     # Build query
     for key, value in filters.items():
-        query.append("({0}={1})".format(key, value))
+        comp = '=' if key.lower() not in fta else '>='
+        query.append("({0}{1}{2})".format(key, comp, value))
     # Close query
     query.append(')')
     # Query!
@@ -1207,7 +1210,6 @@ if __name__ == '__main__':
         # Check mandatory entry on configuration file
         debugger(arguments.verbose, wt, 'Check mandatory fields on configuration file {0}'.format(arguments.conf))
         check_config(arguments.conf)
-        debugger(arguments.verbose, wt, 'Connect')
         # Connect LDAP servers
         debugger(arguments.verbose, wt, 'Connect to LDAP servers {0}'.format(','.join(cfg['LDAP']['servers'])))
         srv = connect_ldap(cfg['LDAP']['servers'], ssl=cfg['LDAP']['ssl'])
@@ -1217,8 +1219,13 @@ if __name__ == '__main__':
         bind = bind_ldap(srv, cfg['LDAP']['bind_user'], cfg['LDAP']['bind_pwd'], tls=cfg['LDAP']['tls'])
         ldap_v = check_ldap_version(bind, cfg['LDAP']['user_base_dn'])
         ids = 'cn' if ldap_v == 'MS-LDAP' else 'uid'
-
-
+        # Get computers from domain controllers
+        debugger(arguments.verbose, wt, 'Convert datetime format to filetime format')
+        td = get_time_sync(cfg['LDAP']['time_computer_sync'])
+        ft = datetime_to_filetime(td)
+        # Query LDAP to take all computer accounts based on filetime
+        computers = query_ldap(bind, cfg['LDAP']['computer_base_dn'], ['name', 'employeetype', 'lastlogon'],
+                   objectcategory='computer', lastlogon=ft)
 
     def main():
         """
