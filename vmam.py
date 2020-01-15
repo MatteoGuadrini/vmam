@@ -107,7 +107,6 @@ This is based on RFC-3579(https://tools.ietf.org/html/rfc3579#section-2.1).
 """
 # region Import dependencies
 
-
 import daemon
 import ldap3
 import winrm
@@ -119,6 +118,7 @@ import winrm
 import os
 import sys
 import yaml
+import time
 import socket
 import logging
 import argparse
@@ -147,6 +147,8 @@ def check_module(module):
 
 # region Global variable
 VERSION = '0.1.0'
+
+
 # endregion
 
 # region Functions
@@ -462,7 +464,8 @@ def query_ldap(bind_object, base_search, attributes, **filters):
     """
     # Init query list
     fta = ['accountexpires', 'badpasswordtime', 'lastlogoff', 'lastlogon', 'lastlogontimestamp', 'lockoutduration'
-           'lockouttime', 'maxpwdage', 'minpwdage', 'pwdlastset']
+                                                                                                 'lockouttime',
+           'maxpwdage', 'minpwdage', 'pwdlastset']
     query = ['(&']
     # Build query
     for key, value in filters.items():
@@ -722,9 +725,11 @@ def mac_format(mac_address, format_mac):
     # Set format
     form = {
         'none': lambda x: x.replace('.', '').replace('-', '').replace(':', '').lower(),
-        'hypen': lambda x: '-'.join([x[i:i+2] for i in range(0, len(x), 2)]).replace('.', '').replace(':', '').lower(),
-        'colon': lambda x: ':'.join([x[i:i+2] for i in range(0, len(x), 2)]).replace('.', '').replace('-', '').lower(),
-        'dot': lambda x: '.'.join([x[i:i+4] for i in range(0, len(x), 4)]).replace(':', '').replace('-', '').lower()
+        'hypen': lambda x: '-'.join([x[i:i + 2] for i in range(0, len(x), 2)]).replace('.', '').replace(':',
+                                                                                                        '').lower(),
+        'colon': lambda x: ':'.join([x[i:i + 2] for i in range(0, len(x), 2)]).replace('.', '').replace('-',
+                                                                                                        '').lower(),
+        'dot': lambda x: '.'.join([x[i:i + 4] for i in range(0, len(x), 4)]).replace(':', '').replace('-', '').lower()
     }
     # Get format
     try:
@@ -1225,7 +1230,22 @@ if __name__ == '__main__':
         ft = datetime_to_filetime(td)
         # Query LDAP to take all computer accounts based on filetime
         computers = query_ldap(bind, cfg['LDAP']['computer_base_dn'], ['name', 'employeetype', 'lastlogon'],
-                   objectcategory='computer', lastlogon=ft)
+                               objectcategory='computer', lastlogon=ft)
+
+
+    def cli_daemon(func, *args):
+        """
+        Run vmam as a daemon
+        :param func: function passed
+        :param args: arguments passed to function
+        :return: None
+        """
+        with daemon.DaemonContext():
+            # Run endlessly
+            while True:
+                func(*args)
+                time.sleep(3)
+
 
     def main():
         """
@@ -1243,7 +1263,11 @@ if __name__ == '__main__':
             exit(1)
         # Get action
         cli = cli_select_action(args.action)
-        cli(args)
+        # Deamon?
+        if args.daemon:
+            cli_daemon(cli, args)
+        else:
+            cli(args)
 
 
     main()
