@@ -834,8 +834,7 @@ if __name__ == '__main__':
         group_mac = mac_parser.add_argument_group(title='manual options')
         group_mac_mutually = group_mac.add_mutually_exclusive_group(required=True)
         group_mac_mutually.add_argument('--add', '-a', help='add/modify mac-address to LDAP server', dest='add',
-                                        action='store',
-                                        nargs=1, metavar='MAC_ADDR')
+                                        action='store', nargs=1, metavar='MAC_ADDR')
         group_mac_mutually.add_argument('--remove', '-r', help='remove mac-address to LDAP server', dest='remove',
                                         action='store', nargs=1, metavar='MAC_ADDR')
         group_mac_mutually.add_argument('--disable', '-d', help='disable mac-address to LDAP server', dest='disable',
@@ -1040,7 +1039,7 @@ if __name__ == '__main__':
         :param arguments: parser object arguments
         :return: None
         """
-        mac = mac_format(''.join(mac), config['VMAM']['mac_format'])
+        mac = mac_format(mac, config['VMAM']['mac_format'])
         print('Disable mac-address {0} on LDAP servers {1}'.format(mac, ','.join(config['LDAP']['servers'])))
         debugger(arguments.verbose, logger, 'Disable mac-address {0} on LDAP servers {1}'.format(
             mac, ','.join(config['LDAP']['servers'])))
@@ -1065,6 +1064,43 @@ if __name__ == '__main__':
                     exit(11)
                 print('Mac-address {0} successfully disabled'.format(mac))
                 logger.info('Mac-address {0} successfully disabled'.format(mac))
+        else:
+            print('ERROR: Mac-address {0} does not exists'.format(mac))
+            exit(8)
+
+
+    def cli_delete_mac(config, bind, mac, logger, arguments):
+        """
+        Delete mac-address LDAP user
+        :param config: YAML configuration
+        :param bind: LDAP bind object
+        :param mac: mac-address in any format
+        :param logger: logging object
+        :param arguments: parser object arguments
+        :return: None
+        """
+        mac = mac_format(mac, config['VMAM']['mac_format'])
+        print('Delete mac-address {0} on LDAP servers {1}'.format(mac, ','.join(config['LDAP']['servers'])))
+        debugger(arguments.verbose, logger, 'Delete mac-address {0} on LDAP servers {1}'.format(
+            mac, ','.join(config['LDAP']['servers'])))
+        ldap_v = check_ldap_version(bind, config['LDAP']['user_base_dn'])
+        ids = 'cn' if ldap_v == 'MS-LDAP' else 'uid'
+        dn = '{0}={1},{2}'.format(ids, mac, config['LDAP']['mac_user_base_dn'])
+        # Query: check if mac-address exist
+        debugger(arguments.verbose, logger, 'Exist mac-address {0} on LDAP servers {1}?'.format(
+            mac, ','.join(config['LDAP']['servers'])))
+        ret = query_ldap(bind, config['LDAP']['user_base_dn'], ['samaccountname'], samaccountname=mac)
+        if ret[0].get('dn'):
+            force = confirm('Do you want to delete {0} mac-address?'.format(mac)) if not arguments.force else True
+            if force:
+                try:
+                    delete_user(bind, dn)
+                except Exception as err:
+                    print('ERROR:', err)
+                    logger.error(err)
+                    exit(12)
+                print('Mac-address {0} successfully deleted'.format(mac))
+                logger.info('Mac-address {0} successfully deleted'.format(mac))
         else:
             print('ERROR: Mac-address {0} does not exists'.format(mac))
             exit(8)
@@ -1196,38 +1232,15 @@ if __name__ == '__main__':
             # Unbind LDAP connection
             unbind_ldap(bind)
         elif arguments.remove:
-            mac = mac_format(''.join(arguments.remove), cfg['VMAM']['mac_format'])
-            print('Delete mac-address {0} on LDAP servers {1}'.format(mac, ','.join(cfg['LDAP']['servers'])))
-            debugger(arguments.verbose, wt, 'Delete mac-address {0} on LDAP servers {1}'.format(
-                mac, ','.join(cfg['LDAP']['servers'])))
             # Connect LDAP servers
-            debugger(arguments.verbose, wt, 'Connect to LDAP servers {0}'.format(','.join(cfg['LDAP']['servers'])))
+            debugger(arguments.verbose, wt,
+                     'Connect to LDAP servers {0}'.format(','.join(cfg['LDAP']['servers'])))
             srv = connect_ldap(cfg['LDAP']['servers'], ssl=cfg['LDAP']['ssl'])
             # Bind LDAP server
             debugger(arguments.verbose, wt, 'Bind on LDAP servers {0} with user {1}'.format(
                 ','.join(cfg['LDAP']['servers']), cfg['LDAP']['bind_user']))
             bind = bind_ldap(srv, cfg['LDAP']['bind_user'], cfg['LDAP']['bind_pwd'], tls=cfg['LDAP']['tls'])
-            ldap_v = check_ldap_version(bind, cfg['LDAP']['user_base_dn'])
-            ids = 'cn' if ldap_v == 'MS-LDAP' else 'uid'
-            dn = '{0}={1},{2}'.format(ids, mac, cfg['LDAP']['mac_user_base_dn'])
-            # Query: check if mac-address exist
-            debugger(arguments.verbose, wt, 'Exist mac-address {0} on LDAP servers {1}?'.format(
-                mac, ','.join(cfg['LDAP']['servers'])))
-            ret = query_ldap(bind, cfg['LDAP']['user_base_dn'], ['samaccountname'], samaccountname=mac)
-            if ret[0].get('dn'):
-                force = confirm('Do you want to delete {0} mac-address?'.format(mac)) if not arguments.force else True
-                if force:
-                    try:
-                        delete_user(bind, dn)
-                    except Exception as err:
-                        print('ERROR:', err)
-                        wt.error(err)
-                        exit(12)
-                    print('Mac-address {0} successfully deleted'.format(mac))
-                    wt.info('Mac-address {0} successfully deleted'.format(mac))
-            else:
-                print('ERROR: Mac-address {0} does not exists'.format(mac))
-                exit(8)
+            cli_delete_mac(cfg, bind, ''.join(arguments.remove), wt, arguments)
             # Unbind LDAP connection
             unbind_ldap(bind)
 
