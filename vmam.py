@@ -1275,6 +1275,16 @@ if __name__ == '__main__':
         # Query LDAP to take all computer accounts based on filetime
         computers = query_ldap(bind, cfg['LDAP']['computer_base_dn'], ['name', 'employeetype', 'lastlogon'],
                                objectcategory='computer', lastlogon=ft)
+        c_attributes = [computer.get('attributes') for computer in computers if computer.get('attributes')]
+        # Check if there are updated computers
+        if c_attributes:
+            for attribute in c_attributes:
+                # Connection to the client via WINRM protocol
+                try:
+                    client = connect_client(attribute['name'], cfg['VMAM']['winrm_user'], cfg['VMAM']['winrm_pwd'])
+                except Exception as err:
+                    print('ERROR:', err)
+                    wt.error(err)
 
 
     def cli_daemon(func, *args):
@@ -1308,7 +1318,7 @@ if __name__ == '__main__':
         # Get action
         cli = cli_select_action(args.action)
         # Deamon?
-        if 'daemon' in args:
+        if 'daemon' in args and args.daemon:
             print('Start vmam daemon...')
             cli_daemon(cli, args)
         else:
