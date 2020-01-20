@@ -1310,11 +1310,25 @@ if __name__ == '__main__':
         if c_attributes:
             for attribute in c_attributes:
                 # Connection to the client via WINRM protocol
-                try:
-                    client = connect_client(attribute['name'], cfg['VMAM']['winrm_user'], cfg['VMAM']['winrm_pwd'])
-                except Exception as err:
-                    print('ERROR:', err)
-                    wt.error(err)
+                debugger(arguments.verbose, wt, 'Try connect to {0} via WINRM'.format(attribute['name']))
+                if check_connection(attribute['name'], 5985):
+                    try:
+                        debugger(arguments.verbose, wt, 'Connect to {0} via WINRM'.format(attribute['name']))
+                        client = connect_client(attribute['name'], cfg['VMAM']['winrm_user'], cfg['VMAM']['winrm_pwd'])
+                        # Run the commands
+                        try:
+                            debugger(arguments.verbose, wt, 'Get mac-address of {0}'.format(attribute['name']))
+                            mac = get_mac_address(client, *cfg['VMAM']['filter_exclude'])
+                            for m in mac:
+                                m = mac_format(m, cfg['VMAM']['mac_format'])
+                        except Exception as err:
+                            print('ERROR:', err)
+                            wt.error(err)
+                    except Exception as err:
+                        print('ERROR:', err)
+                        wt.error(err)
+                else:
+                    debugger(arguments.verbose, wt, '{0} unreachable'.format(attribute['name']))
 
 
     def cli_daemon(func, *args):
