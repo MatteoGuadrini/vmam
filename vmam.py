@@ -785,6 +785,36 @@ def run_command(protocol, command):
     return std_out, std_err, status_code
 
 
+def get_mac_address(protocol, *exclude):
+    """
+    Get mac-addresses to remote client
+    :param protocol: WINRM protocol object
+    :return: string mac-address
+    ---
+    >>>cl = connect_client('host1', r'domain\\user', 'password')
+    >>>mac = get_mac_address(cl)
+    >>>print(mac)
+    """
+    # Get all mac-address on machine
+    macs = list(run_command(protocol, 'getmac /fo csv /v'))
+    # Skip the first line of output
+    mac_list = macs[0].splitlines()[1:]
+    # Process al mac-addresses
+    ret = list()
+    for mac in mac_list:
+        mac = mac.decode('ascii')
+        # Check exclusion
+        for exc in exclude:
+            exclusion = True if exc in mac else False
+            if exclusion:
+                break
+        else:
+            ret.append(mac)
+    ret = [r.split(',')[2].strip('"') for r in ret]
+    # Return list of mac-address
+    return ret
+
+
 # endregion
 
 
