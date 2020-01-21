@@ -789,7 +789,7 @@ def get_mac_address(protocol, *exclude):
     """
     Get mac-addresses to remote client
     :param protocol: WINRM protocol object
-    :return: string mac-address
+    :return: list mac-address
     ---
     >>>cl = connect_client('host1', r'domain\\user', 'password')
     >>>mac = get_mac_address(cl)
@@ -799,7 +799,7 @@ def get_mac_address(protocol, *exclude):
     macs = list(run_command(protocol, 'getmac /fo csv /v'))
     # Skip the first line of output
     mac_list = macs[0].splitlines()[1:]
-    # Process al mac-addresses
+    # Process all mac-addresses
     ret = list()
     for mac in mac_list:
         mac = mac.decode('ascii')
@@ -814,6 +814,28 @@ def get_mac_address(protocol, *exclude):
     # Return list of mac-address
     return ret
 
+
+def get_client_user(protocol):
+    """
+    Get the last user who logged in to the machine
+    :param protocol: WINRM protocol object
+    :return: user string
+    ---
+    >>>cl = connect_client('host1', r'domain\\user', 'password')
+    >>>user = get_client_user(cl)
+    >>>print(user)
+    """
+    # Get the users connected
+    users = list(run_command(protocol, 'quser'))
+    # Skip the first line of output
+    user_list = users[0].splitlines()[1:]
+    # Process all users
+    ret = list()
+    for user in user_list:
+        user = user.decode('ascii').strip()
+        ret.append(user.split())
+    # Get last user: 0:USERNAME, 1:SESSIONNAME, 3:ID, 4:STATE, 5:IDLE TIME, 6:LOGON TIME
+    return ret
 
 # endregion
 
