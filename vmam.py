@@ -1340,17 +1340,27 @@ if __name__ == '__main__':
                         # Run the commands
                         try:
                             debugger(arguments.verbose, wt, 'Get mac-address of {0}'.format(attribute['name']))
-                            mac = get_mac_address(client, *cfg['VMAM']['filter_exclude'])
-                            for m in mac:
-                                m = mac_format(m, cfg['VMAM']['mac_format'])
+                            # Get all mac-addresses of the computer
+                            if cfg['VMAM']['filter_exclude']:
+                                macs = get_mac_address(client, *cfg['VMAM']['filter_exclude'])
+                            else:
+                                macs = get_mac_address(client)
+                            # Get the last user of the computer
+                            users = get_client_user(client)
+                            for mac in macs:
+                                mac = mac_format(mac, cfg['VMAM']['mac_format'])
                         except Exception as err:
                             print('ERROR:', err)
                             wt.error(err)
+                            continue
                     except Exception as err:
                         print('ERROR:', err)
                         wt.error(err)
+                        continue
                 else:
                     debugger(arguments.verbose, wt, '{0} unreachable'.format(attribute['name']))
+        # Unbind LDAP connection
+        unbind_ldap(bind)
 
 
     def cli_daemon(func, *args):
