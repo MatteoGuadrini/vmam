@@ -837,6 +837,7 @@ def get_client_user(protocol):
     # Get last user: 0:USERNAME, 1:SESSIONNAME, 3:ID, 4:STATE, 5:IDLE TIME, 6:LOGON TIME
     return ret
 
+
 # endregion
 
 
@@ -927,7 +928,7 @@ if __name__ == '__main__':
         return actions.get(action, 'No action available')
 
 
-    def cli_new_mac(config, bind, mac, vgroup, logger, arguments):
+    def cli_new_mac(config, bind, mac, vgroup, logger, arguments, description=None):
         """
         Create or modify mac-address LDAP user
         :param config: YAML configuration
@@ -936,6 +937,7 @@ if __name__ == '__main__':
         :param vgroup: vlan-id than represent the LDAP group
         :param logger: logging object
         :param arguments: parser object arguments
+        :param description: description string value for LDAP user
         :return: None
         """
         mac = mac_format(mac, config['VMAM']['mac_format'])
@@ -958,7 +960,7 @@ if __name__ == '__main__':
                      'sn': mac,
                      'samaccountname': mac,
                      'userprincipalname': '{0}@{1}'.format(mac, config['LDAP']['domain']),
-                     'description': mac}
+                     'description': description}
             # Check write_attrib on configuration file
             vflag = 'VMAM_MANUAL' if arguments.action == 'mac' else 'VMAM_AUTO'
             if config['LDAP']['write_attrib']:
@@ -1268,7 +1270,7 @@ if __name__ == '__main__':
             debugger(arguments.verbose, wt, 'Bind on LDAP servers {0} with user {1}'.format(
                 ','.join(cfg['LDAP']['servers']), cfg['LDAP']['bind_user']))
             bind = bind_ldap(srv, cfg['LDAP']['bind_user'], cfg['LDAP']['bind_pwd'], tls=cfg['LDAP']['tls'])
-            cli_new_mac(cfg, bind, ''.join(arguments.add), vlanid, wt, arguments)
+            cli_new_mac(cfg, bind, ''.join(arguments.add), vlanid, wt, arguments, description=''.join(arguments.add))
             # Unbind LDAP connection
             unbind_ldap(bind)
         elif arguments.disable:
@@ -1294,6 +1296,7 @@ if __name__ == '__main__':
             bind = bind_ldap(srv, cfg['LDAP']['bind_user'], cfg['LDAP']['bind_pwd'], tls=cfg['LDAP']['tls'])
             cli_delete_mac(cfg, bind, ''.join(arguments.remove), wt, arguments)
             # Unbind LDAP connection
+            debugger(arguments.verbose, wt, 'Unbind on LDAP servers {0}'.format(','.join(cfg['LDAP']['servers'])))
             unbind_ldap(bind)
 
 
@@ -1346,7 +1349,20 @@ if __name__ == '__main__':
                             else:
                                 macs = get_mac_address(client)
                             # Get the last user of the computer
+                            debugger(arguments.verbose, wt, 'Get users of {0}'.format(attribute['name']))
                             users = get_client_user(client)
+                            # Search user on LDAP server
+                            try:
+                                debugger(arguments.verbose, wt, 'Search user {0} on LDAP'.format(users[0][0]))
+                                user = query_ldap(bind, cfg['LDAP']['user_base_dn'],
+                                                  cfg['LDAP']['verify_attrib'],
+                                                  objectcategory='person', samaccountname=users[0][0])
+                                if user[0]['attributes']:
+                                    pass
+                            except Exception as err:
+                                print('ERROR:', err)
+                                wt.error(err)
+                                continue
                             for mac in macs:
                                 mac = mac_format(mac, cfg['VMAM']['mac_format'])
                         except Exception as err:
@@ -1360,6 +1376,7 @@ if __name__ == '__main__':
                 else:
                     debugger(arguments.verbose, wt, '{0} unreachable'.format(attribute['name']))
         # Unbind LDAP connection
+        debugger(arguments.verbose, wt, 'Unbind on LDAP servers {0}'.format(','.join(cfg['LDAP']['servers'])))
         unbind_ldap(bind)
 
 
