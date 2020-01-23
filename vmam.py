@@ -838,6 +838,34 @@ def get_client_user(protocol):
     return ret
 
 
+def check_vlan_attributes(value, method='like', *attributes):
+    """
+    Check VLAN attributes with like or match method
+    :param value: value to check
+    :param method: 'like' or 'match'
+    :param attributes: list of attributes
+    :return: boolean
+    ---
+    >>>conn = connect_ldap(['dc1.foo.bar'])
+    >>>bind = bind_ldap(conn, r'domain\\user', 'password', tls=True)
+    >>>user = query_ldap(bind, 'dc=foo,dc=bar', ['memberof', 'description', 'department'],
+                         objectClass='person', samAccountName='person1')
+    >>>ok = check_vlan_attributes('business', user[0].get('attributes'))
+    >>>print(ok)
+    """
+    # if like...
+    if method == 'like':
+        for attr in attributes:
+            return True if value in attr else False
+    # if match...
+    elif method == 'match':
+        for attr in attributes:
+            return True if value == attr else False
+    # else...false
+    else:
+        return False
+
+
 # endregion
 
 
@@ -1333,23 +1361,24 @@ if __name__ == '__main__':
         c_attributes = [computer.get('attributes') for computer in computers if computer.get('attributes')]
         # Check if there are updated computers
         if c_attributes:
-            for attribute in c_attributes:
+            for c_attribute in c_attributes:
                 # Connection to the client via WINRM protocol
-                debugger(arguments.verbose, wt, 'Try connect to {0} via WINRM'.format(attribute['name']))
-                if check_connection(attribute['name'], 5985):
+                debugger(arguments.verbose, wt, 'Try connect to {0} via WINRM'.format(c_attribute['name']))
+                if check_connection(c_attribute['name'], 5985):
                     try:
-                        debugger(arguments.verbose, wt, 'Connect to {0} via WINRM'.format(attribute['name']))
-                        client = connect_client(attribute['name'], cfg['VMAM']['winrm_user'], cfg['VMAM']['winrm_pwd'])
+                        debugger(arguments.verbose, wt, 'Connect to {0} via WINRM'.format(c_attribute['name']))
+                        client = connect_client(c_attribute['name'], cfg['VMAM']['winrm_user'],
+                                                cfg['VMAM']['winrm_pwd'])
                         # Run the commands
                         try:
-                            debugger(arguments.verbose, wt, 'Get mac-address of {0}'.format(attribute['name']))
+                            debugger(arguments.verbose, wt, 'Get mac-address of {0}'.format(c_attribute['name']))
                             # Get all mac-addresses of the computer
                             if cfg['VMAM']['filter_exclude']:
                                 macs = get_mac_address(client, *cfg['VMAM']['filter_exclude'])
                             else:
                                 macs = get_mac_address(client)
                             # Get the last user of the computer
-                            debugger(arguments.verbose, wt, 'Get users of {0}'.format(attribute['name']))
+                            debugger(arguments.verbose, wt, 'Get users of {0}'.format(c_attribute['name']))
                             users = get_client_user(client)
                             # Search user on LDAP server
                             try:
@@ -1363,8 +1392,6 @@ if __name__ == '__main__':
                                 print('ERROR:', err)
                                 wt.error(err)
                                 continue
-                            for mac in macs:
-                                mac = mac_format(mac, cfg['VMAM']['mac_format'])
                         except Exception as err:
                             print('ERROR:', err)
                             wt.error(err)
@@ -1374,7 +1401,7 @@ if __name__ == '__main__':
                         wt.error(err)
                         continue
                 else:
-                    debugger(arguments.verbose, wt, '{0} unreachable'.format(attribute['name']))
+                    debugger(arguments.verbose, wt, 'Computer {0} unreachable'.format(c_attribute['name']))
         # Unbind LDAP connection
         debugger(arguments.verbose, wt, 'Unbind on LDAP servers {0}'.format(','.join(cfg['LDAP']['servers'])))
         unbind_ldap(bind)
