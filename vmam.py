@@ -850,7 +850,7 @@ def check_vlan_attributes(value, method='like', *attributes):
     >>>bind = bind_ldap(conn, r'domain\\user', 'password', tls=True)
     >>>user = query_ldap(bind, 'dc=foo,dc=bar', ['memberof', 'description', 'department'],
                          objectClass='person', samAccountName='person1')
-    >>>ok = check_vlan_attributes('business', user[0].get('attributes'))
+    >>>ok = check_vlan_attributes('business', user[0].get('attributes').get('description'))
     >>>print(ok)
     """
     # if like...
@@ -1386,8 +1386,27 @@ if __name__ == '__main__':
                                 user = query_ldap(bind, cfg['LDAP']['user_base_dn'],
                                                   cfg['LDAP']['verify_attrib'],
                                                   objectcategory='person', samaccountname=users[0][0])
-                                if user[0]['attributes']:
-                                    pass
+                                # Check the match of the attributes for the creation of the mac-address
+                                if user[0].get('attributes'):
+                                    debugger(arguments.verbose, wt, 'Check the match of the attributes for the '
+                                                                    'creation of the mac-address')
+                                    # Cycle all match values per user on configuration file
+                                    for kid, vid in cfg['VMAM']['user_match_id'].items():
+                                        # Cycle all values returned by the user query
+                                        for kad, vad in user[0].get('attributes').items():
+                                            # Verify if value of user is a string or list
+                                            if type(vad) == type(str()):
+                                                ok = check_vlan_attributes(kid, cfg['LDAP']['match'], vad)
+                                            else:
+                                                ok = check_vlan_attributes(kid, cfg['LDAP']['match'], *vad)
+                                            # Check if the match has taken place
+                                            if ok:
+                                                for mac in macs:
+                                                    mac = mac_format(mac, cfg['VMAM']['mac_format'])
+                                                    debugger(arguments.verbose, wt,
+                                                             'Create mac-address user: {0}'.format(mac))
+                                            else:
+                                                continue
                             except Exception as err:
                                 print('ERROR:', err)
                                 wt.error(err)
