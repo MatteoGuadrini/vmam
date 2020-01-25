@@ -785,6 +785,87 @@ def run_command(protocol, command):
     return std_out, std_err, status_code
 
 
+def get_mac_address(protocol, *exclude):
+    """
+    Get mac-addresses to remote client
+    :param protocol: WINRM protocol object
+    :return: list mac-address
+    ---
+    >>>cl = connect_client('host1', r'domain\\user', 'password')
+    >>>mac = get_mac_address(cl)
+    >>>print(mac)
+    """
+    # Get all mac-address on machine
+    macs = list(run_command(protocol, 'getmac /fo csv /v'))
+    # Skip the first line of output
+    mac_list = macs[0].splitlines()[1:]
+    # Process all mac-addresses
+    ret = list()
+    for mac in mac_list:
+        mac = mac.decode('ascii')
+        # Check exclusion
+        for exc in exclude:
+            exclusion = True if exc in mac else False
+            if exclusion:
+                break
+        else:
+            ret.append(mac)
+    ret = [r.split(',')[2].strip('"') for r in ret]
+    # Return list of mac-address
+    return ret
+
+
+def get_client_user(protocol):
+    """
+    Get the last user who logged in to the machine
+    :param protocol: WINRM protocol object
+    :return: user string
+    ---
+    >>>cl = connect_client('host1', r'domain\\user', 'password')
+    >>>user = get_client_user(cl)
+    >>>print(user)
+    """
+    # Get the users connected
+    users = list(run_command(protocol, 'quser'))
+    # Skip the first line of output
+    user_list = users[0].splitlines()[1:]
+    # Process all users
+    ret = list()
+    for user in user_list:
+        user = user.decode('ascii').strip()
+        ret.append(user.split())
+    # Get last user: 0:USERNAME, 1:SESSIONNAME, 3:ID, 4:STATE, 5:IDLE TIME, 6:LOGON TIME
+    return ret
+
+
+def check_vlan_attributes(value, method='like', *attributes):
+    """
+    Check VLAN attributes with like or match method
+    :param value: value to check
+    :param method: 'like' or 'match'
+    :param attributes: list of attributes
+    :return: boolean
+    ---
+    >>>conn = connect_ldap(['dc1.foo.bar'])
+    >>>bind = bind_ldap(conn, r'domain\\user', 'password', tls=True)
+    >>>user = query_ldap(bind, 'dc=foo,dc=bar', ['memberof', 'description', 'department'],
+                         objectClass='person', samAccountName='person1')
+    >>>ok = check_vlan_attributes('business', user[0].get('attributes').get('description'))
+    >>>print(ok)
+    """
+    # if like...
+    if method == 'like':
+        for attr in attributes:
+            return True if value in attr else False
+    # if match...
+    elif method == 'match':
+        for attr in attributes:
+            return True if value == attr else False
+    # else...false
+    else:
+        return False
+
+
 # endregion
 
 
@@ -875,7 +956,7 @@ if __name__ == '__main__':
         return actions.get(action, 'No action available')
 
 
-    def cli_new_mac(config, bind, mac, vgroup, logger, arguments):
+    def cli_new_mac(config, bind, mac, vgroup, logger, arguments, description=None):
         """
         Create or modify mac-address LDAP user
         :param config: YAML configuration
@@ -884,6 +965,7 @@ if __name__ == '__main__':
         :param vgroup: vlan-id than represent the LDAP group
         :param logger: logging object
         :param arguments: parser object arguments
+        :param description: description string value for LDAP user
         :return: None
         """
         mac = mac_format(mac, config['VMAM']['mac_format'])
@@ -906,7 +988,7 @@ if __name__ == '__main__':
                      'sn': mac,
                      'samaccountname': mac,
                      'userprincipalname': '{0}@{1}'.format(mac, config['LDAP']['domain']),
-                     'description': mac}
+                     'description': description}
             # Check write_attrib on configuration file
             vflag = 'VMAM_MANUAL' if arguments.action == 'mac' else 'VMAM_AUTO'
             if config['LDAP']['write_attrib']:
@@ -1216,7 +1298,7 @@ if __name__ == '__main__':
             debugger(arguments.verbose, wt, 'Bind on LDAP servers {0} with user {1}'.format(
                 ','.join(cfg['LDAP']['servers']), cfg['LDAP']['bind_user']))
             bind = bind_ldap(srv, cfg['LDAP']['bind_user'], cfg['LDAP']['bind_pwd'], tls=cfg['LDAP']['tls'])
-            cli_new_mac(cfg, bind, ''.join(arguments.add), vlanid, wt, arguments)
+            cli_new_mac(cfg, bind, ''.join(arguments.add), vlanid, wt, arguments, description=''.join(arguments.add))
             # Unbind LDAP connection
             unbind_ldap(bind)
         elif arguments.disable:
@@ -1242,6 +1324,7 @@ if __name__ == '__main__':
             bind = bind_ldap(srv, cfg['LDAP']['bind_user'], cfg['LDAP']['bind_pwd'], tls=cfg['LDAP']['tls'])
             cli_delete_mac(cfg, bind, ''.join(arguments.remove), wt, arguments)
             # Unbind LDAP connection
+            debugger(arguments.verbose, wt, 'Unbind on LDAP servers {0}'.format(','.join(cfg['LDAP']['servers'])))
             unbind_ldap(bind)
 
 
@@ -1278,13 +1361,69 @@ if __name__ == '__main__':
         c_attributes = [computer.get('attributes') for computer in computers if computer.get('attributes')]
         # Check if there are updated computers
         if c_attributes:
-            for attribute in c_attributes:
+            for c_attribute in c_attributes:
                 # Connection to the client via WINRM protocol
-                try:
-                    client = connect_client(attribute['name'], cfg['VMAM']['winrm_user'], cfg['VMAM']['winrm_pwd'])
-                except Exception as err:
-                    print('ERROR:', err)
-                    wt.error(err)
+                debugger(arguments.verbose, wt, 'Try connect to {0} via WINRM'.format(c_attribute['name']))
+                if check_connection(c_attribute['name'], 5985):
+                    try:
+                        debugger(arguments.verbose, wt, 'Connect to {0} via WINRM'.format(c_attribute['name']))
+                        client = connect_client(c_attribute['name'], cfg['VMAM']['winrm_user'],
+                                                cfg['VMAM']['winrm_pwd'])
+                        # Run the commands
+                        try:
+                            debugger(arguments.verbose, wt, 'Get mac-address of {0}'.format(c_attribute['name']))
+                            # Get all mac-addresses of the computer
+                            if cfg['VMAM']['filter_exclude']:
+                                macs = get_mac_address(client, *cfg['VMAM']['filter_exclude'])
+                            else:
+                                macs = get_mac_address(client)
+                            # Get the last user of the computer
+                            debugger(arguments.verbose, wt, 'Get users of {0}'.format(c_attribute['name']))
+                            users = get_client_user(client)
+                            # Search user on LDAP server
+                            try:
+                                debugger(arguments.verbose, wt, 'Search user {0} on LDAP'.format(users[0][0]))
+                                user = query_ldap(bind, cfg['LDAP']['user_base_dn'],
+                                                  cfg['LDAP']['verify_attrib'],
+                                                  objectcategory='person', samaccountname=users[0][0])
+                                # Check the match of the attributes for the creation of the mac-address
+                                if user[0].get('attributes'):
+                                    debugger(arguments.verbose, wt, 'Check the match of the attributes for the '
+                                                                    'creation of the mac-address')
+                                    # Cycle all match values per user on configuration file
+                                    for kid, vid in cfg['VMAM']['user_match_id'].items():
+                                        # Cycle all values returned by the user query
+                                        for kad, vad in user[0].get('attributes').items():
+                                            # Verify if value of user is a string or list
+                                            if type(vad) == type(str()):
+                                                ok = check_vlan_attributes(kid, cfg['LDAP']['match'], vad)
+                                            else:
+                                                ok = check_vlan_attributes(kid, cfg['LDAP']['match'], *vad)
+                                            # Check if the match has taken place
+                                            if ok:
+                                                for mac in macs:
+                                                    mac = mac_format(mac, cfg['VMAM']['mac_format'])
+                                                    debugger(arguments.verbose, wt,
+                                                             'Create mac-address user: {0}'.format(mac))
+                                            else:
+                                                continue
+                            except Exception as err:
+                                print('ERROR:', err)
+                                wt.error(err)
+                                continue
+                        except Exception as err:
+                            print('ERROR:', err)
+                            wt.error(err)
+                            continue
+                    except Exception as err:
+                        print('ERROR:', err)
+                        wt.error(err)
+                        continue
+                else:
+                    debugger(arguments.verbose, wt, 'Computer {0} unreachable'.format(c_attribute['name']))
+        # Unbind LDAP connection
+        debugger(arguments.verbose, wt, 'Unbind on LDAP servers {0}'.format(','.join(cfg['LDAP']['servers'])))
+        unbind_ldap(bind)
 
 
     def cli_daemon(func, *args):
