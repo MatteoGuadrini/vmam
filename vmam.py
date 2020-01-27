@@ -856,11 +856,13 @@ def check_vlan_attributes(value, method='like', *attributes):
     # if like...
     if method == 'like':
         for attr in attributes:
-            return True if value in attr else False
+            if value in attr:
+                return True
     # if match...
     elif method == 'match':
         for attr in attributes:
-            return True if value == attr else False
+            if value == attr:
+                return True
     # else...false
     else:
         return False
@@ -1349,8 +1351,6 @@ if __name__ == '__main__':
         debugger(arguments.verbose, wt, 'Bind on LDAP servers {0} with user {1}'.format(
             ','.join(cfg['LDAP']['servers']), cfg['LDAP']['bind_user']))
         bind = bind_ldap(srv, cfg['LDAP']['bind_user'], cfg['LDAP']['bind_pwd'], tls=cfg['LDAP']['tls'])
-        ldap_v = check_ldap_version(bind, cfg['LDAP']['user_base_dn'])
-        ids = 'cn' if ldap_v == 'MS-LDAP' else 'uid'
         # Get computers from domain controllers
         debugger(arguments.verbose, wt, 'Convert datetime format to filetime format')
         td = get_time_sync(cfg['LDAP']['time_computer_sync'])
@@ -1395,16 +1395,16 @@ if __name__ == '__main__':
                                         # Cycle all values returned by the user query
                                         for kad, vad in user[0].get('attributes').items():
                                             # Verify if value of user is a string or list
-                                            if type(vad) == type(str()):
+                                            if isinstance(vad, str):
                                                 ok = check_vlan_attributes(kid, cfg['LDAP']['match'], vad)
                                             else:
                                                 ok = check_vlan_attributes(kid, cfg['LDAP']['match'], *vad)
                                             # Check if the match has taken place
                                             if ok:
                                                 for mac in macs:
-                                                    mac = mac_format(mac, cfg['VMAM']['mac_format'])
                                                     debugger(arguments.verbose, wt,
                                                              'Create mac-address user: {0}'.format(mac))
+                                                    print(mac, cfg['VMAM']['vlan_group_id'][vid])
                                             else:
                                                 continue
                             except Exception as err:
