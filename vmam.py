@@ -1008,11 +1008,13 @@ if __name__ == '__main__':
                 exit(8)
             logger.info('Add mac-address {0} on LDAP servers {1} in {2} VLAN group.'.format(
                 dn, ','.join(config['LDAP']['servers']), vgroup))
+            exist = False
         else:
             debugger(arguments.verbose, logger, 'Mac-address {0} exists on LDAP servers {1}'.format(
                 ret[0].get('dn'), ','.join(config['LDAP']['servers'])))
             print('Mac address {0} already exists on LDAP servers {1}'.format(
                 ret[0].get('dn'), ','.join(config['LDAP']['servers'])))
+            exist = True
         # Add VLAN and custom LDAP group
         # VLAN-ID group
         try:
@@ -1107,8 +1109,9 @@ if __name__ == '__main__':
             print('ERROR:', err)
             logger.error(err)
             exit(9)
-        print('Mac-address user {0} successfully created'.format(mac))
-        logger.info('Mac-address user {0} successfully created'.format(mac))
+        if not exist:
+            print('Mac-address user {0} successfully created'.format(mac))
+            logger.info('Mac-address user {0} successfully created'.format(mac))
 
 
     def cli_disable_mac(config, bind, mac, logger, arguments):
