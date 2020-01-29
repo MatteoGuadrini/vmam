@@ -834,7 +834,7 @@ def get_client_user(protocol):
     for user in user_list:
         user = user.decode('ascii').strip()
         ret.append(user.split())
-    # Get last user: 0:USERNAME, 1:SESSIONNAME, 3:ID, 4:STATE, 5:IDLE TIME, 6:LOGON TIME
+    # Get last user: 0:USERNAME, 1:SESSIONNAME, 2:ID, 3:STATE, 4:IDLE TIME, 5:LOGON DATE, 6:LOGON TIME
     return ret
 
 
@@ -981,7 +981,7 @@ if __name__ == '__main__':
         # Query: check if mac-address exist
         debugger(arguments.verbose, logger, 'Exist mac-address {0} on LDAP servers {1}?'.format(
             mac, ','.join(config['LDAP']['servers'])))
-        ret = query_ldap(bind, config['LDAP']['user_base_dn'], ['samaccountname'], samaccountname=mac)
+        ret = query_ldap(bind, config['LDAP']['mac_user_base_dn'], ['samaccountname'], samaccountname=mac)
         if not ret[0].get('dn'):
             debugger(arguments.verbose, logger, 'Mac-address {0} not exists on LDAP servers {1}'.format(
                 mac, ','.join(config['LDAP']['servers'])))
@@ -1025,7 +1025,7 @@ if __name__ == '__main__':
                 if vgroup == key:
                     g = query_ldap(bind, config['LDAP']['user_base_dn'], ['member', 'distinguishedname'],
                                    objectclass='group', name=value)
-                    u = query_ldap(bind, config['LDAP']['user_base_dn'], ['memberof'],
+                    u = query_ldap(bind, config['LDAP']['mac_user_base_dn'], ['memberof'],
                                    objectclass='user', name=mac)
                     gdn = g[0]['dn']
                     umember = u[0]['attributes']['memberof']
@@ -1053,7 +1053,7 @@ if __name__ == '__main__':
             for group in config['LDAP']['other_group']:
                 g = query_ldap(bind, config['LDAP']['user_base_dn'], ['member', 'distinguishedname'],
                                objectclass='group', name=group)
-                u = query_ldap(bind, config['LDAP']['user_base_dn'], ['memberof'],
+                u = query_ldap(bind, config['LDAP']['mac_user_base_dn'], ['memberof'],
                                objectclass='user', name=mac)
                 gdn = g[0]['dn']
                 umember = u[0]['attributes']['memberof']
@@ -1079,7 +1079,7 @@ if __name__ == '__main__':
                 if vgroup != key:
                     g = query_ldap(bind, config['LDAP']['user_base_dn'], ['member', 'distinguishedname'],
                                    objectclass='group', name=value)
-                    u = query_ldap(bind, config['LDAP']['user_base_dn'], ['memberof'],
+                    u = query_ldap(bind, config['LDAP']['mac_user_base_dn'], ['memberof'],
                                    objectclass='user', name=mac)
                     gdn = g[0]['dn']
                     umember = u[0]['attributes']['memberof']
@@ -1406,10 +1406,10 @@ if __name__ == '__main__':
                                                 for mac in macs:
                                                     # Create mac-address user and assign to VLAN groups
                                                     if 'user' in cfg['LDAP']['add_group_type']:
+                                                        desc = 'User:{0}, Computer:{1}'.format(
+                                                                        users[0][0], c_attribute.get('name'))
                                                         cli_new_mac(cfg, bind, mac, vid, wt, arguments,
-                                                                    description='User:{0}, Computer:{1}'.format(
-                                                                        users[0][0], c_attribute['name']
-                                                                    ))
+                                                                    description=desc)
                                                     else:
                                                         debugger(arguments.verbose, wt,
                                                                  'No "user" in configuration file: LDAP->add_group_type'
@@ -1420,8 +1420,8 @@ if __name__ == '__main__':
                                                                        ['member', 'distinguishedname'],
                                                                        objectclass='group',
                                                                        name=cfg['VMAM']['vlan_group_id'][vid])
-                                                        gdn = g[0]['dn']
-                                                        cdn = c_attribute['distinguishedname']
+                                                        gdn = g[0].get('dn')
+                                                        cdn = c_attribute.get('distinguishedname')
                                                         # Add VLAN LDAP group to user mac address
                                                         if cdn not in g[0]['attributes']['member']:
                                                             add_to_group(bind, gdn, cdn)
