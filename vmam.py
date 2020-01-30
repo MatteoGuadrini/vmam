@@ -293,6 +293,7 @@ def new_config(path=(get_platform()['conf_default'])):
             'user_base_dn': 'DC=foo,DC=bar',
             'computer_base_dn': 'DC=foo,DC=bar',
             'mac_user_base_dn': 'OU=mac-users,DC=foo,DC=bar',
+            'mac_user_ttl': '365d',
             'max_computer_sync': 0,
             'time_computer_sync': '1m',
             'verify_attrib': ['memberof', 'cn'],
@@ -449,11 +450,18 @@ def unbind_ldap(bind_object):
     bind_object.unbind()
 
 
-def query_ldap(bind_object, base_search, attributes, **filters):
+def query_ldap(bind_object, base_search, attributes, comp='=', **filters):
     """
     :param bind_object: LDAP bind object
     :param base_search: distinguishedName of LDAP base search
     :param attributes: list of returning LDAP attributes
+    :param comp: comparison operator. Default is '='. Allowed:
+                 Equality:		(attribute=abc)     =
+                 Negation:		(!attribute=abc)  	!
+                 Presence:		(attribute=*)       =*
+                 Greater than:	(attribute>=abc)    >=
+                 Less than:		(attribute<=abc)    <=
+                 Proximity:		(attribute~=abc)    ~=
     :param filters: dictionary of ldap query
     :return: query result list
     ---
@@ -463,14 +471,17 @@ def query_ldap(bind_object, base_search, attributes, **filters):
     >>>print(ret)
     """
     # Init query list
-    fta = ['accountexpires', 'badpasswordtime', 'lastlogoff', 'lastlogon', 'lastlogontimestamp', 'lockoutduration'
-                                                                                                 'lockouttime',
-           'maxpwdage', 'minpwdage', 'pwdlastset']
+    allow_comp = ['=', '>=', '<=', '~=', '=*', '!']
+    strict_comp = ['objectcategory', 'objectclass']
+    assert comp in allow_comp, "Comparison operator {0} is not allowed in LDAP query".format(comp)
     query = ['(&']
     # Build query
     for key, value in filters.items():
-        comp = '=' if key.lower() not in fta else '>='
-        query.append("({0}{1}{2})".format(key, comp, value))
+        if comp == '!':
+            query.append("(!{0}={1})".format(key, value))
+        else:
+            ncomp = '=' if key.lower() in strict_comp else comp
+            query.append("({0}{1}{2})".format(key, ncomp, value))
     # Close query
     query.append(')')
     # Query!
@@ -674,7 +685,7 @@ def get_time_sync(timedelta):
     >>>print(td)
     """
     # Dictionary of units
-    units = {"s": "seconds", "m": "minutes", "h": "hours", "d": "days", "w": "weeks", "M": "months", "y": "years"}
+    units = {"s": "seconds", "m": "minutes", "h": "hours", "d": "days", "w": "weeks"}
     # Extract info of timedelta
     count = int(timedelta[:-1])
     unit = units[timedelta[-1]]
@@ -1353,12 +1364,12 @@ if __name__ == '__main__':
             ','.join(cfg['LDAP']['servers']), cfg['LDAP']['bind_user']))
         bind = bind_ldap(srv, cfg['LDAP']['bind_user'], cfg['LDAP']['bind_pwd'], tls=cfg['LDAP']['tls'])
         # Get computers from domain controllers
-        debugger(arguments.verbose, wt, 'Convert datetime format to filetime format')
+        debugger(arguments.verbose, wt, 'Convert datetime format to filetime format for computer query')
         td = get_time_sync(cfg['LDAP']['time_computer_sync'])
         ft = datetime_to_filetime(td)
         # Query LDAP to take all computer accounts based on filetime
         computers = query_ldap(bind, cfg['LDAP']['computer_base_dn'],
-                               ['name', 'employeetype', 'lastlogon', 'distinguishedname'],
+                               ['name', 'employeetype', 'lastlogon', 'distinguishedname'], comp='>=',
                                objectcategory='computer', lastlogon=ft)
         c_attributes = [computer.get('attributes') for computer in computers if computer.get('attributes')]
         # Check if there are updated computers
@@ -1407,7 +1418,7 @@ if __name__ == '__main__':
                                                     # Create mac-address user and assign to VLAN groups
                                                     if 'user' in cfg['LDAP']['add_group_type']:
                                                         desc = 'User:{0}, Computer:{1}'.format(
-                                                                        users[0][0], c_attribute.get('name'))
+                                                            users[0][0], c_attribute.get('name'))
                                                         cli_new_mac(cfg, bind, mac, vid, wt, arguments,
                                                                     description=desc)
                                                     else:
@@ -1453,6 +1464,13 @@ if __name__ == '__main__':
                         continue
                 else:
                     debugger(arguments.verbose, wt, 'Computer {0} unreachable'.format(c_attribute['name']))
+        # Get old mac-address user
+        debugger(arguments.verbose, wt, 'Convert datetime format to filetime format for mac-address user query')
+        td = get_time_sync(cfg['LDAP']['mac_user_ttl'])
+        ft = datetime_to_filetime(td)
+        macaddresses = query_ldap(bind, cfg['LDAP']['mac_user_base_dn'],
+                                  ['name', 'employeetype', 'lastlogon', 'distinguishedname'], comp='<=',
+                                  objectcategory='user', lastlogon=ft)
         # Unbind LDAP connection
         debugger(arguments.verbose, wt, 'Unbind on LDAP servers {0}'.format(','.join(cfg['LDAP']['servers'])))
         unbind_ldap(bind)
