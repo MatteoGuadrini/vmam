@@ -1146,7 +1146,7 @@ if __name__ == '__main__':
         debugger(arguments.verbose, logger, 'Exist mac-address {0} on LDAP servers {1}?'.format(
             mac, ','.join(config['LDAP']['servers'])))
         ret = query_ldap(bind, config['LDAP']['user_base_dn'], ['samaccountname'], samaccountname=mac)
-        if ret[0].get('dn'):
+        if ret and ret[0].get('dn'):
             force = confirm('Do you want to disable {0} mac-address?'.format(mac)) if not arguments.force else True
             if force:
                 try:
@@ -1186,7 +1186,7 @@ if __name__ == '__main__':
         debugger(arguments.verbose, logger, 'Exist mac-address {0} on LDAP servers {1}?'.format(
             mac, ','.join(config['LDAP']['servers'])))
         ret = query_ldap(bind, config['LDAP']['user_base_dn'], ['samaccountname'], samaccountname=mac)
-        if ret[0].get('dn'):
+        if ret and ret[0].get('dn'):
             force = confirm('Do you want to delete {0} mac-address?'.format(mac)) if not arguments.force else True
             if force:
                 try:
@@ -1400,7 +1400,7 @@ if __name__ == '__main__':
                                                   cfg['LDAP']['verify_attrib'],
                                                   objectcategory='person', samaccountname=users[0][0])
                                 # Check the match of the attributes for the creation of the mac-address
-                                if user[0].get('attributes'):
+                                if user and user[0].get('attributes'):
                                     debugger(arguments.verbose, wt, 'Check the match of the attributes for the '
                                                                     'creation of the mac-address')
                                     # Cycle all match values per user on configuration file
@@ -1464,13 +1464,25 @@ if __name__ == '__main__':
                         continue
                 else:
                     debugger(arguments.verbose, wt, 'Computer {0} unreachable'.format(c_attribute['name']))
+        debugger(arguments.verbose, wt, 'Start disable/delete process')
         # Get old mac-address user
         debugger(arguments.verbose, wt, 'Convert datetime format to filetime format for mac-address user query')
+        # Get value for soft deletion
+        soft_deletion = cfg['LDAP']['mac_user_ttl']
         td = get_time_sync(cfg['LDAP']['mac_user_ttl'])
         ft = datetime_to_filetime(td)
+        write_attrib = cfg['LDAP']['write_attrib'] if cfg['LDAP']['write_attrib'] else 'employeetype'
         macaddresses = query_ldap(bind, cfg['LDAP']['mac_user_base_dn'],
-                                  ['name', 'employeetype', 'lastlogon', 'distinguishedname'], comp='<=',
-                                  objectcategory='user', lastlogon=ft)
+                                  ['name', write_attrib, 'lastlogontimestamp', 'distinguishedname'], comp='<=',
+                                  objectcategory='user', lastlogontimestamp=ft)
+        if macaddresses:
+            for mac in macaddresses:
+                if soft_deletion:
+                    # Disable mac-address
+                    pass
+                else:
+                    # Remove mac-address
+                    pass
         # Unbind LDAP connection
         debugger(arguments.verbose, wt, 'Unbind on LDAP servers {0}'.format(','.join(cfg['LDAP']['servers'])))
         unbind_ldap(bind)
