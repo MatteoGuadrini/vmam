@@ -180,7 +180,8 @@ def logwriter(logfile):
     handler.setFormatter(_format)
     logger = logging.getLogger(os.path.basename(__file__))
     logger.setLevel(logging.DEBUG)
-    logger.addHandler(handler)
+    if not len(logger.handlers):
+        logger.addHandler(handler)
     return logger
 
 
@@ -1371,9 +1372,9 @@ if __name__ == '__main__':
         computers = query_ldap(bind, cfg['LDAP']['computer_base_dn'],
                                ['name', 'employeetype', 'lastlogon', 'distinguishedname'], comp='>=',
                                objectcategory='computer', lastlogon=ft)
-        c_attributes = [computer.get('attributes') for computer in computers if computer.get('attributes')]
         # Check if there are updated computers
-        if c_attributes:
+        if computers:
+            c_attributes = [computer.get('attributes') for computer in computers if computer.get('attributes')]
             for c_attribute in c_attributes:
                 # Connection to the client via WINRM protocol
                 debugger(arguments.verbose, wt, 'Try connect to {0} via WINRM'.format(c_attribute['name']))
