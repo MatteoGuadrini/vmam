@@ -180,7 +180,8 @@ def logwriter(logfile):
     handler.setFormatter(_format)
     logger = logging.getLogger(os.path.basename(__file__))
     logger.setLevel(logging.DEBUG)
-    logger.addHandler(handler)
+    if not len(logger.handlers):
+        logger.addHandler(handler)
     return logger
 
 
@@ -293,6 +294,7 @@ def new_config(path=(get_platform()['conf_default'])):
             'user_base_dn': 'DC=foo,DC=bar',
             'computer_base_dn': 'DC=foo,DC=bar',
             'mac_user_base_dn': 'OU=mac-users,DC=foo,DC=bar',
+            'mac_user_ttl': '365d',
             'max_computer_sync': 0,
             'time_computer_sync': '1m',
             'verify_attrib': ['memberof', 'cn'],
@@ -449,11 +451,18 @@ def unbind_ldap(bind_object):
     bind_object.unbind()
 
 
-def query_ldap(bind_object, base_search, attributes, **filters):
+def query_ldap(bind_object, base_search, attributes, comp='=', **filters):
     """
     :param bind_object: LDAP bind object
     :param base_search: distinguishedName of LDAP base search
     :param attributes: list of returning LDAP attributes
+    :param comp: comparison operator. Default is '='. Allowed:
+                 Equality:		(attribute=abc)     =
+                 Negation:		(!attribute=abc)  	!
+                 Presence:		(attribute=*)       =*
+                 Greater than:	(attribute>=abc)    >=
+                 Less than:		(attribute<=abc)    <=
+                 Proximity:		(attribute~=abc)    ~=
     :param filters: dictionary of ldap query
     :return: query result list
     ---
@@ -463,14 +472,17 @@ def query_ldap(bind_object, base_search, attributes, **filters):
     >>>print(ret)
     """
     # Init query list
-    fta = ['accountexpires', 'badpasswordtime', 'lastlogoff', 'lastlogon', 'lastlogontimestamp', 'lockoutduration'
-                                                                                                 'lockouttime',
-           'maxpwdage', 'minpwdage', 'pwdlastset']
+    allow_comp = ['=', '>=', '<=', '~=', '=*', '!']
+    strict_comp = ['objectcategory', 'objectclass']
+    assert comp in allow_comp, "Comparison operator {0} is not allowed in LDAP query".format(comp)
     query = ['(&']
     # Build query
     for key, value in filters.items():
-        comp = '=' if key.lower() not in fta else '>='
-        query.append("({0}{1}{2})".format(key, comp, value))
+        if comp == '!':
+            query.append("(!{0}={1})".format(key, value))
+        else:
+            ncomp = '=' if key.lower() in strict_comp else comp
+            query.append("({0}{1}{2})".format(key, ncomp, value))
     # Close query
     query.append(')')
     # Query!
@@ -674,7 +686,7 @@ def get_time_sync(timedelta):
     >>>print(td)
     """
     # Dictionary of units
-    units = {"s": "seconds", "m": "minutes", "h": "hours", "d": "days", "w": "weeks", "M": "months", "y": "years"}
+    units = {"s": "seconds", "m": "minutes", "h": "hours", "d": "days", "w": "weeks"}
     # Extract info of timedelta
     count = int(timedelta[:-1])
     unit = units[timedelta[-1]]
@@ -834,7 +846,7 @@ def get_client_user(protocol):
     for user in user_list:
         user = user.decode('ascii').strip()
         ret.append(user.split())
-    # Get last user: 0:USERNAME, 1:SESSIONNAME, 3:ID, 4:STATE, 5:IDLE TIME, 6:LOGON TIME
+    # Get last user: 0:USERNAME, 1:SESSIONNAME, 2:ID, 3:STATE, 4:IDLE TIME, 5:LOGON DATE, 6:LOGON TIME
     return ret
 
 
@@ -856,11 +868,13 @@ def check_vlan_attributes(value, method='like', *attributes):
     # if like...
     if method == 'like':
         for attr in attributes:
-            return True if value in attr else False
+            if value in attr:
+                return True
     # if match...
     elif method == 'match':
         for attr in attributes:
-            return True if value == attr else False
+            if value == attr:
+                return True
     # else...false
     else:
         return False
@@ -979,7 +993,7 @@ if __name__ == '__main__':
         # Query: check if mac-address exist
         debugger(arguments.verbose, logger, 'Exist mac-address {0} on LDAP servers {1}?'.format(
             mac, ','.join(config['LDAP']['servers'])))
-        ret = query_ldap(bind, config['LDAP']['user_base_dn'], ['samaccountname'], samaccountname=mac)
+        ret = query_ldap(bind, config['LDAP']['mac_user_base_dn'], ['samaccountname'], samaccountname=mac)
         if not ret[0].get('dn'):
             debugger(arguments.verbose, logger, 'Mac-address {0} not exists on LDAP servers {1}'.format(
                 mac, ','.join(config['LDAP']['servers'])))
@@ -1006,11 +1020,13 @@ if __name__ == '__main__':
                 exit(8)
             logger.info('Add mac-address {0} on LDAP servers {1} in {2} VLAN group.'.format(
                 dn, ','.join(config['LDAP']['servers']), vgroup))
+            exist = False
         else:
             debugger(arguments.verbose, logger, 'Mac-address {0} exists on LDAP servers {1}'.format(
                 ret[0].get('dn'), ','.join(config['LDAP']['servers'])))
             print('Mac address {0} already exists on LDAP servers {1}'.format(
                 ret[0].get('dn'), ','.join(config['LDAP']['servers'])))
+            exist = True
         # Add VLAN and custom LDAP group
         # VLAN-ID group
         try:
@@ -1021,7 +1037,7 @@ if __name__ == '__main__':
                 if vgroup == key:
                     g = query_ldap(bind, config['LDAP']['user_base_dn'], ['member', 'distinguishedname'],
                                    objectclass='group', name=value)
-                    u = query_ldap(bind, config['LDAP']['user_base_dn'], ['memberof'],
+                    u = query_ldap(bind, config['LDAP']['mac_user_base_dn'], ['memberof'],
                                    objectclass='user', name=mac)
                     gdn = g[0]['dn']
                     umember = u[0]['attributes']['memberof']
@@ -1049,7 +1065,7 @@ if __name__ == '__main__':
             for group in config['LDAP']['other_group']:
                 g = query_ldap(bind, config['LDAP']['user_base_dn'], ['member', 'distinguishedname'],
                                objectclass='group', name=group)
-                u = query_ldap(bind, config['LDAP']['user_base_dn'], ['memberof'],
+                u = query_ldap(bind, config['LDAP']['mac_user_base_dn'], ['memberof'],
                                objectclass='user', name=mac)
                 gdn = g[0]['dn']
                 umember = u[0]['attributes']['memberof']
@@ -1075,7 +1091,7 @@ if __name__ == '__main__':
                 if vgroup != key:
                     g = query_ldap(bind, config['LDAP']['user_base_dn'], ['member', 'distinguishedname'],
                                    objectclass='group', name=value)
-                    u = query_ldap(bind, config['LDAP']['user_base_dn'], ['memberof'],
+                    u = query_ldap(bind, config['LDAP']['mac_user_base_dn'], ['memberof'],
                                    objectclass='user', name=mac)
                     gdn = g[0]['dn']
                     umember = u[0]['attributes']['memberof']
@@ -1105,10 +1121,9 @@ if __name__ == '__main__':
             print('ERROR:', err)
             logger.error(err)
             exit(9)
-        print('Mac-address user {0} successfully created'.format(mac))
-        logger.info('Mac-address user {0} successfully created'.format(mac))
-        # Unbind LDAP connection
-        unbind_ldap(bind)
+        if not exist:
+            print('Mac-address user {0} successfully created'.format(mac))
+            logger.info('Mac-address user {0} successfully created'.format(mac))
 
 
     def cli_disable_mac(config, bind, mac, logger, arguments):
@@ -1132,7 +1147,7 @@ if __name__ == '__main__':
         debugger(arguments.verbose, logger, 'Exist mac-address {0} on LDAP servers {1}?'.format(
             mac, ','.join(config['LDAP']['servers'])))
         ret = query_ldap(bind, config['LDAP']['user_base_dn'], ['samaccountname'], samaccountname=mac)
-        if ret[0].get('dn'):
+        if ret and ret[0].get('dn'):
             force = confirm('Do you want to disable {0} mac-address?'.format(mac)) if not arguments.force else True
             if force:
                 try:
@@ -1172,7 +1187,7 @@ if __name__ == '__main__':
         debugger(arguments.verbose, logger, 'Exist mac-address {0} on LDAP servers {1}?'.format(
             mac, ','.join(config['LDAP']['servers'])))
         ret = query_ldap(bind, config['LDAP']['user_base_dn'], ['samaccountname'], samaccountname=mac)
-        if ret[0].get('dn'):
+        if ret and ret[0].get('dn'):
             force = confirm('Do you want to delete {0} mac-address?'.format(mac)) if not arguments.force else True
             if force:
                 try:
@@ -1349,18 +1364,17 @@ if __name__ == '__main__':
         debugger(arguments.verbose, wt, 'Bind on LDAP servers {0} with user {1}'.format(
             ','.join(cfg['LDAP']['servers']), cfg['LDAP']['bind_user']))
         bind = bind_ldap(srv, cfg['LDAP']['bind_user'], cfg['LDAP']['bind_pwd'], tls=cfg['LDAP']['tls'])
-        ldap_v = check_ldap_version(bind, cfg['LDAP']['user_base_dn'])
-        ids = 'cn' if ldap_v == 'MS-LDAP' else 'uid'
         # Get computers from domain controllers
-        debugger(arguments.verbose, wt, 'Convert datetime format to filetime format')
+        debugger(arguments.verbose, wt, 'Convert datetime format to filetime format for computer query')
         td = get_time_sync(cfg['LDAP']['time_computer_sync'])
         ft = datetime_to_filetime(td)
         # Query LDAP to take all computer accounts based on filetime
-        computers = query_ldap(bind, cfg['LDAP']['computer_base_dn'], ['name', 'employeetype', 'lastlogon'],
+        computers = query_ldap(bind, cfg['LDAP']['computer_base_dn'],
+                               ['name', 'employeetype', 'lastlogon', 'distinguishedname'], comp='>=',
                                objectcategory='computer', lastlogon=ft)
-        c_attributes = [computer.get('attributes') for computer in computers if computer.get('attributes')]
         # Check if there are updated computers
-        if c_attributes:
+        if computers:
+            c_attributes = [computer.get('attributes') for computer in computers if computer.get('attributes')]
             for c_attribute in c_attributes:
                 # Connection to the client via WINRM protocol
                 debugger(arguments.verbose, wt, 'Try connect to {0} via WINRM'.format(c_attribute['name']))
@@ -1387,7 +1401,7 @@ if __name__ == '__main__':
                                                   cfg['LDAP']['verify_attrib'],
                                                   objectcategory='person', samaccountname=users[0][0])
                                 # Check the match of the attributes for the creation of the mac-address
-                                if user[0].get('attributes'):
+                                if user and user[0].get('attributes'):
                                     debugger(arguments.verbose, wt, 'Check the match of the attributes for the '
                                                                     'creation of the mac-address')
                                     # Cycle all match values per user on configuration file
@@ -1395,16 +1409,46 @@ if __name__ == '__main__':
                                         # Cycle all values returned by the user query
                                         for kad, vad in user[0].get('attributes').items():
                                             # Verify if value of user is a string or list
-                                            if type(vad) == type(str()):
+                                            if isinstance(vad, str):
                                                 ok = check_vlan_attributes(kid, cfg['LDAP']['match'], vad)
                                             else:
                                                 ok = check_vlan_attributes(kid, cfg['LDAP']['match'], *vad)
                                             # Check if the match has taken place
                                             if ok:
                                                 for mac in macs:
-                                                    mac = mac_format(mac, cfg['VMAM']['mac_format'])
-                                                    debugger(arguments.verbose, wt,
-                                                             'Create mac-address user: {0}'.format(mac))
+                                                    # Create mac-address user and assign to VLAN groups
+                                                    if 'user' in cfg['LDAP']['add_group_type']:
+                                                        desc = 'User:{0}, Computer:{1}'.format(
+                                                            users[0][0], c_attribute.get('name'))
+                                                        cli_new_mac(cfg, bind, mac, vid, wt, arguments,
+                                                                    description=desc)
+                                                    else:
+                                                        debugger(arguments.verbose, wt,
+                                                                 'No "user" in configuration file: LDAP->add_group_type'
+                                                                 )
+                                                    # Assign computer to VLAN groups
+                                                    if 'computer' in cfg['LDAP']['add_group_type']:
+                                                        g = query_ldap(bind, cfg['LDAP']['user_base_dn'],
+                                                                       ['member', 'distinguishedname'],
+                                                                       objectclass='group',
+                                                                       name=cfg['VMAM']['vlan_group_id'][vid])
+                                                        gdn = g[0].get('dn')
+                                                        cdn = c_attribute.get('distinguishedname')
+                                                        # Add VLAN LDAP group to user mac address
+                                                        if cdn not in g[0]['attributes']['member']:
+                                                            add_to_group(bind, gdn, cdn)
+                                                            print('Add VLAN group {0} to user {1}'.format(gdn, cdn))
+                                                            wt.info(
+                                                                'Add VLAN group {0} to user {1}'.format(gdn, cdn))
+                                                        else:
+                                                            debugger(arguments.verbose, wt,
+                                                                     'VLAN group {0} already added to user {1}'.format(
+                                                                         cfg['VMAM']['vlan_group_id'][vid], cdn))
+                                                    else:
+                                                        debugger(arguments.verbose, wt,
+                                                                 'No "computer" in configuration file: '
+                                                                 'LDAP->add_group_type'
+                                                                 )
                                             else:
                                                 continue
                             except Exception as err:
@@ -1421,6 +1465,25 @@ if __name__ == '__main__':
                         continue
                 else:
                     debugger(arguments.verbose, wt, 'Computer {0} unreachable'.format(c_attribute['name']))
+        debugger(arguments.verbose, wt, 'Start disable/delete process')
+        # Get old mac-address user
+        debugger(arguments.verbose, wt, 'Convert datetime format to filetime format for mac-address user query')
+        # Get value for soft deletion
+        soft_deletion = cfg['LDAP']['mac_user_ttl']
+        td = get_time_sync(cfg['LDAP']['mac_user_ttl'])
+        ft = datetime_to_filetime(td)
+        write_attrib = cfg['LDAP']['write_attrib'] if cfg['LDAP']['write_attrib'] else 'employeetype'
+        macaddresses = query_ldap(bind, cfg['LDAP']['mac_user_base_dn'],
+                                  ['name', write_attrib, 'lastlogontimestamp', 'distinguishedname'], comp='<=',
+                                  objectcategory='user', lastlogontimestamp=ft)
+        if macaddresses:
+            for mac in macaddresses:
+                if soft_deletion:
+                    # Disable mac-address
+                    pass
+                else:
+                    # Remove mac-address
+                    pass
         # Unbind LDAP connection
         debugger(arguments.verbose, wt, 'Unbind on LDAP servers {0}'.format(','.join(cfg['LDAP']['servers'])))
         unbind_ldap(bind)
