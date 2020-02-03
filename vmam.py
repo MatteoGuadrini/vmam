@@ -1474,16 +1474,20 @@ if __name__ == '__main__':
         ft = datetime_to_filetime(td)
         write_attrib = cfg['LDAP']['write_attrib'] if cfg['LDAP']['write_attrib'] else 'employeetype'
         macaddresses = query_ldap(bind, cfg['LDAP']['mac_user_base_dn'],
-                                  ['name', write_attrib, 'lastlogontimestamp', 'distinguishedname'], comp='<=',
-                                  objectcategory='user', lastlogontimestamp=ft)
+                                  ['name', write_attrib, 'lastlogontimestamp', 'distinguishedname', 'whencreated'],
+                                  comp='<=', objectcategory='user', lastlogontimestamp=ft)
         if macaddresses:
             for mac in macaddresses:
-                if soft_deletion:
-                    # Disable mac-address
-                    pass
-                else:
-                    # Remove mac-address
-                    pass
+                # Check if mac-address user don't live in time-to-live period
+                wc = datetime_to_filetime(mac.get('attributes').get('whencreated'))
+                print(ft, wc)
+                if wc > ft:
+                    if soft_deletion:
+                        # Disable mac-address
+                        pass
+                    else:
+                        # Remove mac-address
+                        pass
         # Unbind LDAP connection
         debugger(arguments.verbose, wt, 'Unbind on LDAP servers {0}'.format(','.join(cfg['LDAP']['servers'])))
         unbind_ldap(bind)
