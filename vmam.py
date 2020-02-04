@@ -1422,6 +1422,11 @@ if __name__ == '__main__':
                                                             users[0][0], c_attribute.get('name'))
                                                         cli_new_mac(cfg, bind, mac, vid, wt, arguments,
                                                                     description=desc)
+                                                        # Add description to computer account
+                                                        set_user(bind, c_attribute.get('distinguishedname'),
+                                                                 description='User: {0} Mac: {1}'.format(
+                                                                     users[0][0], mac
+                                                                 ))
                                                     else:
                                                         debugger(arguments.verbose, wt,
                                                                  'No "user" in configuration file: LDAP->add_group_type'
@@ -1444,6 +1449,11 @@ if __name__ == '__main__':
                                                             debugger(arguments.verbose, wt,
                                                                      'VLAN group {0} already added to user {1}'.format(
                                                                          cfg['VMAM']['vlan_group_id'][vid], cdn))
+                                                        # Add description to computer account
+                                                        set_user(bind, c_attribute.get('distinguishedname'),
+                                                                 description='User: {0} Mac: {1}'.format(
+                                                                     users[0][0], mac
+                                                                 ))
                                                     else:
                                                         debugger(arguments.verbose, wt,
                                                                  'No "computer" in configuration file: '
@@ -1474,20 +1484,20 @@ if __name__ == '__main__':
         ft = datetime_to_filetime(td)
         write_attrib = cfg['LDAP']['write_attrib'] if cfg['LDAP']['write_attrib'] else 'employeetype'
         macaddresses = query_ldap(bind, cfg['LDAP']['mac_user_base_dn'],
-                                  ['name', write_attrib, 'lastlogontimestamp', 'distinguishedname', 'whencreated'],
+                                  ['name', write_attrib, 'samaccountname', 'distinguishedname', 'whencreated'],
                                   comp='<=', objectcategory='user', lastlogontimestamp=ft)
         if macaddresses:
+            print(len(macaddresses))
             for mac in macaddresses:
                 # Check if mac-address user don't live in time-to-live period
                 wc = datetime_to_filetime(mac.get('attributes').get('whencreated'))
-                print(ft, wc)
-                if wc > ft:
+                if ft > wc:
                     if soft_deletion:
                         # Disable mac-address
-                        pass
+                        cli_disable_mac(cfg, bind, mac.get('attributes').get('samaccountname'), wt, arguments)
                     else:
                         # Remove mac-address
-                        pass
+                        cli_delete_mac(cfg, bind, mac.get('attributes').get('samaccountname'), wt, arguments)
         # Unbind LDAP connection
         debugger(arguments.verbose, wt, 'Unbind on LDAP servers {0}'.format(','.join(cfg['LDAP']['servers'])))
         unbind_ldap(bind)
