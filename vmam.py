@@ -1528,7 +1528,6 @@ if __name__ == '__main__':
                                   ['name', write_attrib, 'samaccountname', 'distinguishedname', 'whencreated'],
                                   comp='<=', objectcategory='user', lastlogontimestamp=ft)
         if macaddresses:
-            print(len(macaddresses))
             for mac in macaddresses:
                 # Check if mac-address user don't live in time-to-live period
                 wc = datetime_to_filetime(mac.get('attributes').get('whencreated'))
