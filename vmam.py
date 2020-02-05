@@ -147,6 +147,11 @@ def check_module(module):
 
 # region Global variable
 VERSION = '0.1.0'
+__all__ = ['logwriter', 'debugger', 'confirm', 'read_config', 'get_platform', 'new_config', 'bind_ldap',
+           'check_connection', 'check_config', 'connect_ldap', 'unbind_ldap', 'query_ldap', 'check_ldap_version',
+           'new_user', 'set_user', 'delete_user', 'set_user_password', 'add_to_group', 'remove_to_group',
+           'filetime_to_datetime', 'datetime_to_filetime', 'get_time_sync', 'string_to_datetime', 'mac_format',
+           'connect_client', 'run_command', 'get_mac_address', 'get_client_user', 'check_vlan_attributes']
 
 
 # endregion
@@ -267,11 +272,9 @@ def get_platform():
     if platform.system() == "Windows":
         os_info['conf_default'] = os.path.expandvars(r'%PROGRAMFILES%\vmam\vmam.yml')
         os_info['log_default'] = os.path.expandvars(r'%WINDIR%\Logs\vmam\vmam.log')
-        os_info['ping_opt'] = '-n 2 -w 20000 2>&1 >NUL'
     else:
         os_info['conf_default'] = '/etc/vmam/vmam.yml'
         os_info['log_default'] = '/var/log/vmam/vmam.log'
-        os_info['ping_opt'] = '-c 2 -w 20000 2>&1 >/dev/null'
     return os_info
 
 
