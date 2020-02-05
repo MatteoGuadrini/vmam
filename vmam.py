@@ -27,11 +27,11 @@ vmam is a command line tool which allows the management and maintenance of the m
 that access the network under a specific domain and a specific VLAN, through LDAP authentication.
 This is based on RFC-3579(https://tools.ietf.org/html/rfc3579#section-2.1).
 
+Usage for command line:
+
     SYNOPSYS
 
         vmam [action] [parameter] [options]
-
-    USAGE
 
         config {action}: Configuration command for vmam environment
 
@@ -96,6 +96,44 @@ This is based on RFC-3579(https://tools.ietf.org/html/rfc3579#section-2.1).
 
             $> vmam mac --remove 000018ff12dd --config-file /opt/vlan-office/office.cfg
             Remove mac-address user 000018ff12dd, based on custom configuration file: /opt/vlan-office/office.cfg
+
+Usage like a module:
+
+    #!/usr/bin/env python3
+    from vmam import *
+
+    # activate debug
+    debug = True
+
+    # define log writer
+    wt = logwriter('/tmp/log.log')
+
+    # start script
+    debugger(debug, wt, 'Start...')
+
+    # open list of mac address
+    macs = open('/tmp/mac_list.txt', 'r')
+
+    # connect to LDAP server
+    conn = connect_ldap(['dc1.foo.bar'])
+    bind = bind_ldap(conn, r'domain\admin', 'password', tls=True)
+    ldap_version = check_ldap_version(bind, 'dc=foo,dc=bar')
+
+    for line in macs:
+        # support empty line format
+        if line:
+            debugger(debug, wt, 'create mac address {}'.format(line))
+            # create mac address
+            mac = mac_format('1A2b3c4D5E6F', 'none')
+            dn = 'cn={},ou=mac,dc=foo,dc=bar'.format(mac)
+            attrs = {'givenname': 'mac-address',
+                     'sn': mac,
+                     'samaccountname': mac
+                     }
+            new_user(bind, dn, **attrs)
+            add_to_group(bind, 'cn=vlan_group100,ou=groups,dc=foo,dc=bar', dn)
+            set_user(bind, dn, pwdlastset=-1, useraccountcontrol=66048)
+            set_user_password(bind, dn, mac, ldap_version=ldap_version)
 
     AUTHOR
 
