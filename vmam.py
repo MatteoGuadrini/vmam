@@ -1425,7 +1425,7 @@ if __name__ == '__main__':
                                                         # Add description to computer account
                                                         set_user(bind, c_attribute.get('distinguishedname'),
                                                                  description='User: {0} Mac: {1}'.format(
-                                                                     users[0][0], mac
+                                                                     users[0][0], macs
                                                                  ))
                                                     else:
                                                         debugger(arguments.verbose, wt,
@@ -1452,7 +1452,7 @@ if __name__ == '__main__':
                                                         # Add description to computer account
                                                         set_user(bind, c_attribute.get('distinguishedname'),
                                                                  description='User: {0} Mac: {1}'.format(
-                                                                     users[0][0], mac
+                                                                     users[0][0], macs
                                                                  ))
                                                     else:
                                                         debugger(arguments.verbose, wt,
