@@ -1,10 +1,19 @@
 # vmam: VLAN Mac-address Authentication Manager
 
+<link href='https://fonts.googleapis.com/css?family=Alata' rel='stylesheet'>
+<style>
+.logo {
+    font-family: 'Alata';font-size: 22px;
+}
+</style>
+
+<p class="logo">VMAM</p>
+
+![vmam logo](https://github.com/MatteoGuadrini/vmam/img/vmam.png)
+
 `vmam` is a command line tool which allows the management and maintenance of the mac-addresses 
 that access the network under a specific domain and a specific VLAN, through LDAP authentication and RADIUS server.
 This is based on [RFC 3579](https://tools.ietf.org/html/rfc3579#section-2.1).
-
-> ATTENTION: This is a project under development!
 
 ## Python module dependencies
 
@@ -80,7 +89,7 @@ You can start creating a default file by typing: `vmam config --new`
 
 This will create a standard configuration file under `/etc/vmam/vmam.conf` on Unix and `C:\vmam\vmam.conf` on Windows.
 
-Now it will be enough, edit and customize the configuration file following the comments as guidelines. Once done, type `vmam config --get-cmd`
+Now it will be enough, edit and customize the configuration file following the documentation as guidelines. Once done, type `vmam config --get-cmd`
 
 This command will return the guide to correctly configure LDAP and the radius server based on the configuration file.
 
@@ -104,3 +113,13 @@ Come today, we are organized to dare to listen to them and answers, every day of
 <a href="https://www.telethon.it/sostienici/dona-ora"> <img src="https://www.telethon.it/dev/_nuxt/img/c6d474e.svg" alt="Telethon" title="Telethon" width="200" height="104" /> </a>
 
 [Adopt the future](https://www.ioadottoilfuturo.it/)
+
+
+## Acknowledgments
+
+Thanks Alexey Diyan for pywinrm module; thanks Giovanni Cannata for ldap3 module; thanks Ben Finney for python-daemon module.
+
+Special thanks go to my wife, who understood the hours of absence for this development. 
+Thanks to my children, for the daily inspiration they give me and to make me realize, that life must be simple.
+
+Thanks Python!
