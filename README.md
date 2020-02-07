@@ -53,7 +53,9 @@ For more details, see the docs.
 ### Automatic mode
 
 In automatic mode, mac-addresses are managed by contacting LDAP server and taking the last machines (variable in the configuration file) 
-that contacted the LDAP server from N seconds, minutes, hour or days, depending on the needs and policies decided. 
+that contacted the LDAP server from N seconds, minutes, hour or days, depending on the needs and policies decided.
+
+> Attention: Clients must have WINRM active. See the `winrm quickconfig` command. 
 
 This mode is activated by launching `vmam start` on the command line. 
 Without any parameter, it reads the configuration file (if not specified, the default one), 

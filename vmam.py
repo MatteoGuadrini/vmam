@@ -31,6 +31,8 @@ Usage for command line:
 
     SYNOPSYS
 
+.. code-block:: console
+
         vmam [action] [parameter] [options]
 
         config {action}: Configuration command for vmam environment
@@ -99,6 +101,8 @@ Usage for command line:
 
 Usage like a module:
 
+.. code-block:: python
+
     #!/usr/bin/env python3
     from vmam import *
 
@@ -116,7 +120,7 @@ Usage like a module:
 
     # connect to LDAP server
     conn = connect_ldap(['dc1.foo.bar'])
-    bind = bind_ldap(conn, r'domain\admin', 'password', tls=True)
+    bind = bind_ldap(conn, r'domain\\admin', 'password', tls=True)
     ldap_version = check_ldap_version(bind, 'dc=foo,dc=bar')
 
     for line in macs:
@@ -135,13 +139,13 @@ Usage like a module:
             set_user(bind, dn, pwdlastset=-1, useraccountcontrol=66048)
             set_user_password(bind, dn, mac, ldap_version=ldap_version)
 
-    AUTHOR
+AUTHOR
 
-        Matteo Guadrini <matteo.guadrini@hotmail.it>
+    Matteo Guadrini <matteo.guadrini@hotmail.it>
 
-    COPYRIGHT
+COPYRIGHT
 
-        (c) Matteo Guadrini. All rights reserved.
+    (c) Matteo Guadrini. All rights reserved.
 """
 # region Import dependencies
 
@@ -184,7 +188,7 @@ def check_module(module):
 # endregion
 
 # region Global variable
-VERSION = '0.1.0'
+VERSION = '1.0.0'
 __all__ = ['logwriter', 'debugger', 'confirm', 'read_config', 'get_platform', 'new_config', 'bind_ldap',
            'check_connection', 'check_config', 'connect_ldap', 'unbind_ldap', 'query_ldap', 'check_ldap_version',
            'new_user', 'set_user', 'delete_user', 'set_user_password', 'add_to_group', 'remove_to_group',
@@ -200,10 +204,13 @@ __all__ = ['logwriter', 'debugger', 'confirm', 'read_config', 'get_platform', 'n
 def printv(*messages):
     """
     Print verbose information
+
     :param messages: List of messages
     :return: String print on stdout
-    ---
-    >>>printv('Test','printv')
+
+    .. testcode::
+
+        >>> printv('Test','printv')
     """
     print("DEBUG:", *messages)
 
@@ -211,11 +218,14 @@ def printv(*messages):
 def logwriter(logfile):
     """
     Logger object than write line in a log file
+
     :param logfile: Path of logfile(.log)
     :return: Logger object
-    ---
-    >>>wl = logwriter('test.log')
-    >>>wl.info('This is a test')
+
+    .. testcode::
+
+        >>> wl = logwriter('test.log')
+        >>> wl.info('This is a test')
     """
     # Create logging object
     _format = logging.Formatter('%(asctime)s %(levelname)-4s %(message)s')
@@ -231,10 +241,16 @@ def logwriter(logfile):
 def debugger(verbose, writer, message):
     """
     Debugger: write debug and print verbose message
+
     :param verbose: verbose status; boolean
     :param writer: Log writer object
     :param message: String message
     :return: String on stdout
+
+    .. testcode::
+
+        >>> wl = logwriter('test.log')
+        >>> debugger(True, wl, 'Test debug')
     """
     if verbose:
         writer.debug(message)
@@ -244,11 +260,15 @@ def debugger(verbose, writer, message):
 def confirm(message):
     """
     Confirm action
+
     :param message: Question that expects a 'yes' or 'no' answer
     :return: Boolean
-    ---
-    >>>if confirm('Please, respond'):
-    >>>    print('yep!')
+
+
+    .. testcode::
+
+        >>> if confirm('Please, respond'):
+        ...    print('yep!')
     """
     # Question
     question = message + ' [Y/n]: '
@@ -273,11 +293,14 @@ def confirm(message):
 def read_config(path):
     """
     Open YAML configuration file
+
     :param path: Path of configuration file
     :return: Python object
-    ---
-    >>>cfg = read_config('/tmp/vmam.yml')
-    >>>print(cfg)
+
+    .. testcode::
+
+        >>> cfg = read_config('/tmp/vmam.yml')
+        >>> print(cfg)
     """
     with open('{0}'.format(path)) as file:
         return yaml.full_load(file)
@@ -286,11 +309,14 @@ def read_config(path):
 def write_config(obj, path):
     """
     Write YAML configuration file
+
     :param obj: Python object that will be converted to YAML
     :param path: Path of configuration file
     :return: None
-    ---
-    >>>write_config(obj, '/tmp/vmam.yml')
+
+    .. testcode::
+
+        >>> write_config(obj, '/tmp/vmam.yml')
     """
     with open('{0}'.format(path), 'w') as file:
         yaml.dump(obj, file)
@@ -299,10 +325,13 @@ def write_config(obj, path):
 def get_platform():
     """
     Get a platform (OS info)
+
     :return: Platform info dictionary
-    ---
-    >>>p = get_platform()
-    >>>print(p)
+
+    .. testcode::
+
+        >>> p = get_platform()
+        >>> print(p)
     """
     # Create os info object
     os_info = {}
@@ -319,10 +348,13 @@ def get_platform():
 def new_config(path=(get_platform()['conf_default'])):
     """
     Create a new vmam config file (YAML)
+
     :param path: Path of config file
     :return: None
-    ---
-    >>>new_config('/tmp/vmam.yml')
+
+    .. testcode::
+
+        >>> new_config('/tmp/vmam.yml')
     """
     conf = {
         'LDAP': {
@@ -367,12 +399,14 @@ def new_config(path=(get_platform()['conf_default'])):
 def check_connection(ip, port):
     """
     Test connection of remote (ip) machine on (port)
+
     :param ip: ip address or hostname of machine
     :param port: tcp port
     :return: Boolean
-    ---
-    >>>check_connection('localhost', 80)
-    True
+
+    .. testcode::
+
+        >>> check_connection('localhost', 80)
     """
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
@@ -386,11 +420,13 @@ def check_connection(ip, port):
 def check_config(path):
     """
     Check YAML configuration file
+
     :param path: Path of configuration file
     :return: Boolean
-    ---
-    >>>cfg = check_config('/tmp/vmam.yml')
-    True
+
+    .. testcode::
+
+        >>> cfg = check_config('/tmp/vmam.yml')
     """
     # Check exists configuration file
     assert os.path.exists(path), 'Configuration file not exists: {0}'.format(path)
@@ -436,12 +472,15 @@ def check_config(path):
 def connect_ldap(servers, *, ssl=False):
     """
     Connect to LDAP server (SYNC mode)
+
     :param servers: LDAP servers list
     :param ssl: If True, set port to 636 else 389
     :return: LDAP connection object
-    ---
-    >>>conn = connect_ldap(['dc1.foo.bar'], ssl=True)
-    >>>print(conn)
+
+    .. testcode::
+
+        >>> conn = connect_ldap(['dc1.foo.bar'], ssl=True)
+        >>> print(conn)
     """
     # Check ssl connection
     port = 636 if ssl else 389
@@ -457,15 +496,18 @@ def connect_ldap(servers, *, ssl=False):
 def bind_ldap(server, user, password, *, tls=False):
     """
     Bind with user a LDAP connection
+
     :param server: LDAP connection object
     :param user: user used for bind
     :param password: password of user
     :param tls: if True, start tls connection
     :return: LDAP bind object
-    ---
-    >>>conn = connect_ldap(['dc1.foo.bar'])
-    >>>bind = bind_ldap(conn, r'domain\\user', 'password', tls=True)
-    >>>print(bind)
+
+    .. testcode::
+
+        >>> conn = connect_ldap(['dc1.foo.bar'])
+        >>> bind = bind_ldap(conn, r'domain\\user', 'password', tls=True)
+        >>> print(bind)
     """
     auto_bind = ldap3.AUTO_BIND_TLS_BEFORE_BIND if tls else ldap3.AUTO_BIND_NONE
     # Create a bind connection with user and password
@@ -481,12 +523,15 @@ def bind_ldap(server, user, password, *, tls=False):
 def unbind_ldap(bind_object):
     """
     Unbind LDAP connection
+
     :param bind_object: LDAP bind object
     :return: None
-    ---
-    >>>conn = connect_ldap(['dc1.foo.bar'])
-    >>>bind = bind_ldap(conn, r'domain\\user', 'password', tls=True)
-    >>>bind.unbind()
+
+    .. testcode::
+
+        >>> conn = connect_ldap(['dc1.foo.bar'])
+        >>> bind = bind_ldap(conn, r'domain\\user', 'password', tls=True)
+        >>> bind.unbind()
     """
     # Disconnect LDAP server
     bind_object.unbind()
@@ -494,23 +539,34 @@ def unbind_ldap(bind_object):
 
 def query_ldap(bind_object, base_search, attributes, comp='=', **filters):
     """
+    Query LDAP
+
     :param bind_object: LDAP bind object
     :param base_search: distinguishedName of LDAP base search
     :param attributes: list of returning LDAP attributes
-    :param comp: comparison operator. Default is '='. Allowed:
-                 Equality:		(attribute=abc)     =
-                 Negation:		(!attribute=abc)  	!
-                 Presence:		(attribute=*)       =*
-                 Greater than:	(attribute>=abc)    >=
-                 Less than:		(attribute<=abc)    <=
-                 Proximity:		(attribute~=abc)    ~=
+    :param comp: comparison operator. Default is '='. Accepted:
+
+        Equality		    (attribute=abc)     =
+
+        Negation		    (!attribute=abc)  	!
+
+        Presence		    (attribute=*)       =*
+
+        Greater than	    (attribute>=abc)    >=
+
+        Less than		    (attribute<=abc)    <=
+
+        Proximity		    (attribute~=abc)    ~=
+
     :param filters: dictionary of ldap query
     :return: query result list
-    ---
-    >>>conn = connect_ldap(['dc1.foo.bar'])
-    >>>bind = bind_ldap(conn, r'domain\\user', 'password', tls=True)
-    >>>ret = query_ldap(bind, 'dc=foo,dc=bar', ['sn', 'givenName'], objectClass='person', samAccountName='person1')
-    >>>print(ret)
+
+    .. testcode::
+
+        >>> conn = connect_ldap(['dc1.foo.bar'])
+        >>> bind = bind_ldap(conn, r'domain\\user', 'password', tls=True)
+        >>> ret = query_ldap(bind, 'dc=foo,dc=bar', ['sn', 'givenName'], objectClass='person', samAccountName='person1')
+        >>> print(ret)
     """
     # Init query list
     allow_comp = ['=', '>=', '<=', '~=', '=*', '!']
@@ -535,14 +591,17 @@ def query_ldap(bind_object, base_search, attributes, comp='=', **filters):
 def check_ldap_version(bind_object, base_search):
     """
     Determines the LDAP version
+
     :param bind_object: LDAP bind object
     :param base_search: distinguishedName of LDAP base search
     :return: LDAP version
-    ---
-    >>>conn = connect_ldap(['dc1.foo.bar'])
-    >>>bind = bind_ldap(conn, r'domain\\user', 'password', tls=True)
-    >>>ret = check_ldap_version(bind, 'dc=foo,dc=bar')
-    >>>print(ret)
+
+    .. testcode::
+
+        >>> conn = connect_ldap(['dc1.foo.bar'])
+        >>> bind = bind_ldap(conn, r'domain\\user', 'password', tls=True)
+        >>> ret = check_ldap_version(bind, 'dc=foo,dc=bar')
+        >>> print(ret)
     """
     # Query!
     try:
@@ -563,14 +622,17 @@ def check_ldap_version(bind_object, base_search):
 def new_user(bind_object, username, **attributes):
     """
     Create a new LDAP user
+
     :param bind_object: LDAP bind object
     :param username: distinguishedName of user
     :param attributes: Dictionary attributes
     :return: LDAP operation result
-    ---
-    >>>conn = connect_ldap(['dc1.foo.bar'])
-    >>>bind = bind_ldap(conn, r'domain\\user', 'password', tls=True)
-    >>>new_user(bind, 'CN=ex_user1,OU=User_ex,DC=foo,DC=bar', givenName='User 1', sn='Example')
+
+    .. testcode::
+
+        >>> conn = connect_ldap(['dc1.foo.bar'])
+        >>> bind = bind_ldap(conn, r'domain\\user', 'password', tls=True)
+        >>> new_user(bind, 'CN=ex_user1,OU=User_ex,DC=foo,DC=bar', givenName='User 1', sn='Example')
     """
     # Create user
     bind_object.add(
@@ -584,14 +646,17 @@ def new_user(bind_object, username, **attributes):
 def set_user(bind_object, username, **attributes):
     """
     Modify an exists LDAP user
+
     :param bind_object: LDAP bind object
     :param username: distinguishedName of user
     :param attributes: Dictionary attributes
     :return: LDAP operation result
-    ---
-    >>>conn = connect_ldap(['dc1.foo.bar'])
-    >>>bind = bind_ldap(conn, r'domain\\user', 'password', tls=True)
-    >>>set_user(bind, 'CN=ex_user1,OU=User_ex,DC=foo,DC=bar', givenName='User 1', sn='Example')
+
+    .. testcode::
+
+        >>> conn = connect_ldap(['dc1.foo.bar'])
+        >>> bind = bind_ldap(conn, r'domain\\user', 'password', tls=True)
+        >>> set_user(bind, 'CN=ex_user1,OU=User_ex,DC=foo,DC=bar', givenName='User 1', sn='Example')
     """
     # Convert value to tuple
     for key, value in attributes.items():
@@ -607,13 +672,16 @@ def set_user(bind_object, username, **attributes):
 def delete_user(bind_object, username):
     """
     Modify an exists LDAP user
+
     :param bind_object: LDAP bind object
     :param username: distinguishedName of user
     :return: LDAP operation result
-    ---
-    >>>conn = connect_ldap(['dc1.foo.bar'])
-    >>>bind = bind_ldap(conn, r'domain\\user', 'password', tls=True)
-    >>>delete_user(bind, 'CN=ex_user1,OU=User_ex,DC=foo,DC=bar')
+
+    .. testcode::
+
+        >>> conn = connect_ldap(['dc1.foo.bar'])
+        >>> bind = bind_ldap(conn, r'domain\\user', 'password', tls=True)
+        >>> delete_user(bind, 'CN=ex_user1,OU=User_ex,DC=foo,DC=bar')
     """
     bind_object.delete(username)
     return bind_object.result
@@ -622,16 +690,20 @@ def delete_user(bind_object, username):
 def set_user_password(bind_object, username, password, *, ldap_version='LDAP'):
     """
     Set password to LDAP user
+
     :param bind_object: LDAP bind object
     :param username: distinguishedName of user
     :param password: password to set of user
     :param ldap_version: LDAP version (LDAP or MS-LDAP)
     :return: None
-    >>>conn = connect_ldap('dc1.foo.bar')
-    >>>bind = bind_ldap(conn, r'domain\\user', 'password', tls=True)
-    >>>new_user(bind, 'CN=ex_user1,OU=User_ex,DC=foo,DC=bar', givenName='User 1', sn='Example')
-    >>>set_user_password(bind, 'CN=ex_user1,OU=User_ex,DC=foo,DC=bar', 'password', ldap_version='MS-LDAP')
-    >>>set_user(bind, 'CN=ex_user1,CN=Users,DC=office,DC=bol', pwdLastSet=-1, userAccountControl=66048)
+
+    .. testcode::
+
+        >>> conn = connect_ldap('dc1.foo.bar')
+        >>> bind = bind_ldap(conn, r'domain\\user', 'password', tls=True)
+        >>> new_user(bind, 'CN=ex_user1,OU=User_ex,DC=foo,DC=bar', givenName='User 1', sn='Example')
+        >>> set_user_password(bind, 'CN=ex_user1,OU=User_ex,DC=foo,DC=bar', 'password', ldap_version='MS-LDAP')
+        >>> set_user(bind, 'CN=ex_user1,CN=Users,DC=office,DC=bol', pwdLastSet=-1, userAccountControl=66048)
     """
     # Set password
     if ldap_version == 'LDAP':
@@ -650,14 +722,17 @@ def set_user_password(bind_object, username, password, *, ldap_version='LDAP'):
 def add_to_group(bind_object, groupname, members):
     """
     Add a member of exists LDAP group
+
     :param bind_object: LDAP bind object
     :param groupname: distinguishedName of group
     :param members: List of a new members
     :return: LDAP operation result
-    ---
-    >>>conn = connect_ldap('dc1.foo.bar')
-    >>>bind = bind_ldap(conn, r'domain\\user', 'password', tls=True)
-    >>>add_to_group(bind, 'CN=ex_group1,OU=Groups,DC=foo,DC=bar', 'CN=ex_user1,CN=Users,DC=office,DC=bol')
+
+    .. testcode::
+
+        >>> conn = connect_ldap('dc1.foo.bar')
+        >>> bind = bind_ldap(conn, r'domain\\user', 'password', tls=True)
+        >>> add_to_group(bind, 'CN=ex_group1,OU=Groups,DC=foo,DC=bar', 'CN=ex_user1,CN=Users,DC=office,DC=bol')
     """
     # Modify group members
     bind_object.modify(
@@ -670,14 +745,17 @@ def add_to_group(bind_object, groupname, members):
 def remove_to_group(bind_object, groupname, members):
     """
     Remove a member of exists LDAP group
+
     :param bind_object: LDAP bind object
     :param groupname: distinguishedName of group
     :param members: List of a removed members
     :return: LDAP operation result
-    ---
-    >>>conn = connect_ldap('dc1.foo.bar')
-    >>>bind = bind_ldap(conn, r'domain\\user', 'password', tls=True)
-    >>>remove_to_group(bind, 'CN=ex_group1,OU=Groups,DC=foo,DC=bar', 'CN=ex_user1,CN=Users,DC=office,DC=bol')
+
+    .. testcode::
+
+        >>> conn = connect_ldap('dc1.foo.bar')
+        >>> bind = bind_ldap(conn, r'domain\\user', 'password', tls=True)
+        >>> remove_to_group(bind, 'CN=ex_group1,OU=Groups,DC=foo,DC=bar', 'CN=ex_user1,CN=Users,DC=office,DC=bol')
     """
     # Modify group members
     bind_object.modify(
@@ -690,11 +768,14 @@ def remove_to_group(bind_object, groupname, members):
 def filetime_to_datetime(filetime):
     """
     Convert MS filetime LDAP to datetime
+
     :param filetime: filetime number (nanoseconds)
     :return: datetime object
-    ---
-    >>>dt = filetime_to_datetime(132130209369676516)
-    >>>print(dt)
+
+    .. testcode::
+
+        >>> dt = filetime_to_datetime(132130209369676516)
+        >>> print(dt)
     """
     # January 1, 1970 as MS filetime
     epoch_as_filetime = 116444736000000000
@@ -705,11 +786,14 @@ def filetime_to_datetime(filetime):
 def datetime_to_filetime(date_time):
     """
     Convert datetime to LDAP MS filetime
+
     :param date_time: datetime object
     :return: filetime number
-    ---
-    >>>ft = datetime_to_filetime(datetime.datetime(2001, 1, 1))
-    >>>print(ft)
+
+    .. testcode::
+
+        >>> ft = datetime_to_filetime(datetime.datetime(2001, 1, 1))
+        >>> print(ft)
     """
     # January 1, 1970 as MS filetime
     epoch_as_filetime = 116444736000000000
@@ -720,11 +804,14 @@ def datetime_to_filetime(date_time):
 def get_time_sync(timedelta):
     """
     It takes the date for synchronization
-    :param timedelta: Time difference to subtract (string: 1s, 2m, 3h, 4d, 5w, 6M, 7y)
+
+    :param timedelta: Time difference to subtract (string: 1s, 2m, 3h, 4d, 5w)
     :return: datetime object
-    ---
-    >>>td = get_time_sync('1d')
-    >>>print(td)
+
+    .. testcode::
+
+        >>> td = get_time_sync('1d')
+        >>> print(td)
     """
     # Dictionary of units
     units = {"s": "seconds", "m": "minutes", "h": "hours", "d": "days", "w": "weeks"}
@@ -739,11 +826,14 @@ def get_time_sync(timedelta):
 def string_to_datetime(string):
     """
     Convert string date to datetime
+
     :param string: Datetime in string format ('dd/mm/yyyy' or 'mm/dd/yyyy')
     :return: Datetime object
-    ---
-    >>>dt = string_to_datetime('28/2/2019')
-    >>>print(dt)
+
+    .. testcode::
+
+        >>> dt = string_to_datetime('28/2/2019')
+        >>> print(dt)
     """
     # Try convert 'dd/mm/yyyy'
     try:
@@ -764,16 +854,24 @@ def string_to_datetime(string):
 def mac_format(mac_address, format_mac):
     """
     Format mac-address with the specified format
+
     :param mac_address: mac-address in any format
     :param format_mac: mac format are (default=none):
-        -none 	112233445566
-        -hypen 	11-22-33-44-55-66
-        -colon 	11:22:33:44:55:66
-        -dot	1122.3344.5566
+
+        none 	112233445566
+
+        hypen 	11-22-33-44-55-66
+
+        colon 	11:22:33:44:55:66
+
+        dot	    1122.3344.5566
+
     :return: mac-address with the specified format
-    ---
-    >>>mac = mac_format('1A2b3c4D5E6F', 'dot')
-    >>>print(mac)
+
+    .. testcode::
+
+        >>> mac = mac_format('1A2b3c4D5E6F', 'dot')
+        >>> print(mac)
     """
     # Set format
     form = {
@@ -795,13 +893,16 @@ def mac_format(mac_address, format_mac):
 def connect_client(client, user, password):
     """
     Connect to client with WINRM protocol
+
     :param client: hostname or ip address
     :param user: username used for connection on client
     :param password: password of user
     :return: WINRM protocol object
-    ---
-    >>>cl = connect_client('host1', r'domain\\user', 'password')
-    >>>print(cl)
+
+    .. testcode::
+
+        >>> cl = connect_client('host1', r'domain\\user', 'password')
+        >>> print(cl)
     """
     # Create protocol object
     protocol = winrm.protocol.Protocol(
@@ -816,14 +917,17 @@ def connect_client(client, user, password):
 
 def run_command(protocol, command):
     """
-    Run command to client
+    Run command to a WINRM client
+
     :param protocol: WINRM protocol object
     :param command: command to run on client
     :return: Output of command
-    ---
-    >>>cl = connect_client('host1', r'domain\\user', 'password')
-    >>>cmd = run_command(cl, 'ipconfig /all')
-    >>>print(cmd)
+
+    .. testcode::
+
+        >>> cl = connect_client('host1', r'domain\\user', 'password')
+        >>> cmd = run_command(cl, 'ipconfig /all')
+        >>> print(cmd)
     """
     # Open shell
     shell = protocol.open_shell()
@@ -841,12 +945,15 @@ def run_command(protocol, command):
 def get_mac_address(protocol, *exclude):
     """
     Get mac-addresses to remote client
+
     :param protocol: WINRM protocol object
     :return: list mac-address
-    ---
-    >>>cl = connect_client('host1', r'domain\\user', 'password')
-    >>>mac = get_mac_address(cl)
-    >>>print(mac)
+
+    .. testcode::
+
+        >>> cl = connect_client('host1', r'domain\\user', 'password')
+        >>> mac = get_mac_address(cl)
+        >>> print(mac)
     """
     # Get all mac-address on machine
     macs = list(run_command(protocol, 'getmac /fo csv /v'))
@@ -871,12 +978,15 @@ def get_mac_address(protocol, *exclude):
 def get_client_user(protocol):
     """
     Get the last user who logged in to the machine
+
     :param protocol: WINRM protocol object
     :return: user string
-    ---
-    >>>cl = connect_client('host1', r'domain\\user', 'password')
-    >>>user = get_client_user(cl)
-    >>>print(user)
+
+    .. testcode::
+
+        >>> cl = connect_client('host1', r'domain\\user', 'password')
+        >>> user = get_client_user(cl)
+        >>> print(user)
     """
     # Get the users connected
     users = list(run_command(protocol, 'quser'))
@@ -894,17 +1004,20 @@ def get_client_user(protocol):
 def check_vlan_attributes(value, method='like', *attributes):
     """
     Check VLAN attributes with like or match method
+
     :param value: value to check
     :param method: 'like' or 'match'
     :param attributes: list of attributes
     :return: boolean
-    ---
-    >>>conn = connect_ldap(['dc1.foo.bar'])
-    >>>bind = bind_ldap(conn, r'domain\\user', 'password', tls=True)
-    >>>user = query_ldap(bind, 'dc=foo,dc=bar', ['memberof', 'description', 'department'],
-                         objectClass='person', samAccountName='person1')
-    >>>ok = check_vlan_attributes('business', user[0].get('attributes').get('description'))
-    >>>print(ok)
+
+    .. testcode::
+
+        >>> conn = connect_ldap(['dc1.foo.bar'])
+        >>> bind = bind_ldap(conn, r'domain\\user', 'password', tls=True)
+        >>> user = query_ldap(bind, 'dc=foo,dc=bar', ['memberof', 'description', 'department'],
+                             objectClass='person', samAccountName='person1')
+        >>> ok = check_vlan_attributes('business', user[0].get('attributes').get('description'))
+        >>> print(ok)
     """
     # if like...
     if method == 'like':
