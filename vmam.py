@@ -1044,10 +1044,8 @@ if __name__ == '__main__':
     def parse_arguments():
         """
         Function that captures the parameters and the arguments in the command line
+
         :return: Parser object
-        ---
-        >>>option = parse_arguments()
-        >>>print(option.parse_args())
         """
         # Create a common parser
         common_parser = argparse.ArgumentParser(add_help=False)
@@ -1100,6 +1098,7 @@ if __name__ == '__main__':
     def cli_check_module():
         """
         CLI function: Check if dependencies modules is installed
+
         :return: Boolean
         """
         # List of dependencies modules
@@ -1112,6 +1111,7 @@ if __name__ == '__main__':
     def cli_select_action(action):
         """
         Select action
+
         :param action: Sub-parser action
         :return: action function
         """
@@ -1127,6 +1127,7 @@ if __name__ == '__main__':
     def cli_new_mac(config, bind, mac, vgroup, logger, arguments, description=None):
         """
         Create or modify mac-address LDAP user
+
         :param config: YAML configuration
         :param bind: LDAP bind object
         :param mac: mac-address in any format
@@ -1283,6 +1284,7 @@ if __name__ == '__main__':
     def cli_disable_mac(config, bind, mac, logger, arguments):
         """
         Disable mac-address LDAP user
+
         :param config: YAML configuration
         :param bind: LDAP bind object
         :param mac: mac-address in any format
@@ -1323,6 +1325,7 @@ if __name__ == '__main__':
     def cli_delete_mac(config, bind, mac, logger, arguments):
         """
         Delete mac-address LDAP user
+
         :param config: YAML configuration
         :param bind: LDAP bind object
         :param mac: mac-address in any format
@@ -1360,6 +1363,7 @@ if __name__ == '__main__':
     def cli_config(arguments):
         """
         Configuration process
+
         :param arguments: Arguments list
         :return: None
         """
@@ -1446,6 +1450,7 @@ if __name__ == '__main__':
     def cli_mac(arguments):
         """
         Manual mac-address process
+
         :param arguments: Arguments list
         :return: None
         """
@@ -1500,6 +1505,7 @@ if __name__ == '__main__':
     def cli_start(arguments):
         """
         Automatic mac-address process
+
         :param arguments: Arguments list
         :return: None
         """
@@ -1659,6 +1665,7 @@ if __name__ == '__main__':
     def cli_daemon(func, *args):
         """
         Run vmam as a daemon
+
         :param func: function passed
         :param args: arguments passed to function
         :return: None
@@ -1673,6 +1680,7 @@ if __name__ == '__main__':
     def main():
         """
         Command line main process
+
         :return: None
         """
         # Check required modules
