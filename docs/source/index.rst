@@ -4,12 +4,13 @@
    contain the root `toctree` directive.
 
 Welcome to vmam's documentation!
-================================
+################################
 
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
-   
+
+   prerequisites
    cmd
    modules
 

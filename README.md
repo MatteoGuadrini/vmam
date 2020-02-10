@@ -1,15 +1,6 @@
 # vmam: VLAN Mac-address Authentication Manager
 
-<link href='https://fonts.googleapis.com/css?family=Alata' rel='stylesheet'>
-<style>
-.logo {
-    font-family: 'Alata';font-size: 22px;
-}
-</style>
-
-<p class="logo">VMAM</p>
-
-![vmam logo](https://github.com/MatteoGuadrini/vmam/img/vmam.png)
+![vmam logo](https://raw.githubusercontent.com/MatteoGuadrini/vmam/master/img/vmam.png)
 
 `vmam` is a command line tool which allows the management and maintenance of the mac-addresses 
 that access the network under a specific domain and a specific VLAN, through LDAP authentication and RADIUS server.
@@ -24,7 +15,7 @@ This is based on [RFC 3579](https://tools.ietf.org/html/rfc3579#section-2.1).
 ## What's vmam?
 
 **vmam** is a command line tool, which manages, manually or automatically, 
-access to the network based on the configurations of its network equipment through LDAP (or Active Directory) and 
+access to the network based on the configurations of its network equipment through LDAP server (Active Directory, FreeIPA, etc.) and 
 RADIUS server (Microsoft Radius or Free Radius) see [IEEE 802.1X](https://en.wikipedia.org/wiki/IEEE_802.1X), 
 based on [RFC 3580](https://tools.ietf.org/html/rfc3580), [RFC 4014](https://tools.ietf.org/html/rfc4014),
 [RFC 2865](https://tools.ietf.org/html/rfc2865), [RFC 3579](https://tools.ietf.org/html/rfc3579).
