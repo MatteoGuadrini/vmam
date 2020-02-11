@@ -50,3 +50,34 @@ The configuration file is in `YAML <https://yaml.org/>`_ format.
         102: hr_vlan
       winrm_pwd: password                       # WINRM password of "winrm_user"
       winrm_user: test\remoteadmin              # WINRM user with admin privileges
+
+Keys and Values
+***************
+
+Below are the key-value references for each reference and section of the configuration file.
+
+LDAP section
+============
+
+This is the LDAP section
+
+==================      ========================================
+Key                     Value
+==================      ========================================
+add_group_type          "user" or "computer" [list]
+bind_user               LDAP user with write privileges [string]
+bind_pwd                Password of "bind_user" [string]
+computer_base_dn        LDAP base search of computer object [string]
+domain                  LDAP domain in dot format [string]
+mac_user_base_dn        LDAP base search of mac-address user object [string]
+match                   "like" or "match" [string]
+mac_user_ttl            NumberString - Ns - 1s, 2m, 3h, 4d, 5w [string]
+other_group             Additional LDAP groups [list]
+servers                 LDAP Server list [list]
+ssl                     If "true", protocol is ldaps:// and port is 636 [boolean]
+time_computer_sync      NumberString - Ns - 1s, 2m, 3h, 4d, 5w [string]
+tls                     If "true", starttls (if you have set "ssl", tls will not be considered) [boolean]
+user_base_dn            LDAP base search of user object [string]
+verify_attrib           Verification attributes for considering a user of a certain VLAN [string]
+write_attrib            Vmam attribute used to write internal value (if empty, employeeType is set) [string]
+==================      ========================================
