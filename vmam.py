@@ -368,7 +368,6 @@ def new_config(path=(get_platform()['conf_default'])):
             'computer_base_dn': 'DC=foo,DC=bar',
             'mac_user_base_dn': 'OU=mac-users,DC=foo,DC=bar',
             'mac_user_ttl': '365d',
-            'max_computer_sync': 0,
             'time_computer_sync': '1m',
             'verify_attrib': ['memberof', 'cn'],
             'write_attrib': 'extensionattribute1',

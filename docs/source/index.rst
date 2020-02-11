@@ -11,6 +11,7 @@ Welcome to vmam's documentation!
    :caption: Contents:
 
    prerequisites
+   configuration
    cmd
    modules
 

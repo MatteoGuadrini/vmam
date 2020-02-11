@@ -1,4 +1,4 @@
-Command line
+Command Line
 ############
 
 .. toctree::
