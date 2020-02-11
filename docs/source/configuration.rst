@@ -81,3 +81,21 @@ user_base_dn            LDAP base search of user object [string]
 verify_attrib           Verification attributes for considering a user of a certain VLAN [string]
 write_attrib            Vmam attribute used to write internal value (if empty, employeeType is set) [string]
 ==================      ========================================
+
+VMAM section
+============
+
+This is the VMAM section
+
+==================      ========================================
+Key                     Value
+==================      ========================================
+filter_exclude          Mac-address filters to be excluded (See output of command ``getmac /fo csv /v``) [list]
+log                     Path of vmam log [string]
+mac_format              "none", "dot", "hypens" or "colon" [string]
+soft_deletion           If this is "true", the mac-addresses are disabled and not deleted [boolean]
+user_match_id           Based on the attribute specified in "verify_attrib". The key is the value to be matched while the value is the VLAN id [dictionary]
+vlan_group_id           The key is the group VLAN id. The value is the name of the LDAP group [dictionary]
+winrm_user              WINRM user with admin privileges [string]
+winrm_pwd               WINRM password of "winrm_user"
+==================      ========================================
