@@ -80,12 +80,12 @@ Usage for command line:
             $> vmam mac --disable 000018ff12dd
             Disable mac-address user 000018ff12dd, based on standard configuration file: /etc/vmam/vmam.cfg
 
-            --force/-f {parameter}: Force add/remove/disable action
+            --force/-f {parameter}: Force remove/disable action
 
             $> vmam mac --remove 000018ff12dd --force
             Force remove mac-address user 000018ff12dd, based on standard configuration file: /etc/vmam/vmam.cfg
 
-            $> vmam mac --add 000018ff12dd --vlan-id 111 --force
+            $> vmam mac --add 000018ff12dd --vlan-id 111
             Modify new or existing mac-address user with VLAN 111, based on standard configuration
             file: /etc/vmam/vmam.cfg
 
