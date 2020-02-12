@@ -53,7 +53,7 @@ The disabling process involves only one step; disabling the user.
 
 ``--disable/-d {parameter}``: Disable a mac-address user on LDAP, without removing
 
-``--force/-f {parameter}``: Force remove/disable action, without prompt confirmation
+``--force/-f {parameter}``: Force remove/disable action, without prompt confirmation (optional)
 
 .. code-block:: console
 
@@ -68,8 +68,12 @@ The deletion process involves only one step; delete the user.
 
 ``--remove/-r {parameter}``: Remove a mac-address user on LDAP
 
-``--force/-f {parameter}``: Force remove/disable action, without prompt confirmation
+``--force/-f {parameter}``: Force remove/disable action, without prompt confirmation (optional)
 
 .. code-block:: console
 
     $> vmam mac --remove <mac-address>
+
+**Common Parameter**
+
+``--config-file/-c {parameter}``: Specify a configuration file in a custom path (optional)

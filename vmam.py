@@ -336,9 +336,9 @@ def get_platform():
     # Create os info object
     os_info = {}
     # Check os
-    if platform.system() == "Windows":
-        os_info['conf_default'] = os.path.expandvars(r'%PROGRAMFILES%\vmam\vmam.yml')
-        os_info['log_default'] = os.path.expandvars(r'%WINDIR%\Logs\vmam\vmam.log')
+    if platform.system() == "Darwin":
+        os_info['conf_default'] = os.path.expandvars('/private/etc/vmam/vmam.yml')
+        os_info['log_default'] = os.path.expandvars('/private/var/vmam/vmam.log')
     else:
         os_info['conf_default'] = '/etc/vmam/vmam.yml'
         os_info['log_default'] = '/var/log/vmam/vmam.log'
