@@ -6,7 +6,7 @@
 Welcome to vmam's documentation!
 ################################
 
-*vmam* is a server-side application, which allows you to manage LDAP users representing the physical cards present on a given network.
+*vmam* is a Unix server-side application, which allows you to manage LDAP users representing the physical cards present on a given network.
 Network cards are represented and interpreted by *vmam* as LDAP user,
 with specific attributes. *vmam* also manages computer accounts, in case your radius policies provide for authentication from computer accounts.
 All this is possible thanks to a simple configuration file.

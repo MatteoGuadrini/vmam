@@ -42,3 +42,17 @@ The process of creating a mac-address user involves these steps:
 .. code-block:: console
 
     $> vmam mac --add <mac-address> --vlan-id <vlan-id>
+
+
+Disabling
+=========
+
+The disabling process involves only one step; disabling the user.
+
+**Parameter**
+
+``--disable/-d {parameter}``: Disable a mac-address user on LDAP, without removing
+
+.. code-block:: console
+
+    $> vmam mac --disable <mac-address>
