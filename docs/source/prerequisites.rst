@@ -5,6 +5,11 @@ Prerequisites
    :maxdepth: 2
    :caption: Contents:
 
+vmam Server
+***********
+
+The server hosting vmam must be unix-like and with systemd installed.
+
 Client on the network
 *********************
 The clients on the network managed by vmam must be Windows machines, with `WINRM <https://en.wikipedia.org/wiki/Windows_Remote_Management>`_ enabled.
