@@ -5,6 +5,17 @@ Configuration File
    :maxdepth: 2
    :caption: Contents:
 
+Config Mode
+***********
+
+To generate an empty configuration file, type at the command line (or through its function, see the *vmam* module):
+
+.. code-block:: console
+
+    vmam config --new <path-to-configuration>.yml
+
+If you don't specify the file path, it will create a configuration file in a default path: ``/etc/vmam/vmam.yml``
+
 
 The configuration file is in `YAML <https://yaml.org/>`_ format.
 
@@ -99,3 +110,15 @@ vlan_group_id           The key is the group VLAN id. The value is the name of t
 winrm_user              WINRM user with admin privileges [string]
 winrm_pwd               WINRM password of "winrm_user" [string]
 ==================      ========================================
+
+
+Get prerequisites configuration
+===============================
+
+Once you have compiled the configuration file with your values, to get the prerequisites scheme, just run this command:
+
+.. code-block:: console
+
+    vmam config --get-cmd <path-to-configuration>.yml
+
+If you don't specify the file path, it will create a configuration file in a default path: ``/etc/vmam/vmam.yml``

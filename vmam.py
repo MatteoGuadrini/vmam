@@ -44,7 +44,7 @@ Usage for command line:
             Create a new configuration in a standard path: /etc/vmam/vmam.cfg
 
             --get-cmd/-g {parameter}: Instruction to obtain the appropriate commands to configure your network
-            infrastructure and radius server around the created configuration file. By specifying a path, it creates
+            infrastructure and radius server around the created configuration file. By specifying a path, get
             the file in the indicated path. The default path is /etc/vmam/vmam.cfg
 
             $> vmam config --get-cmd
