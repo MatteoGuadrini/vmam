@@ -8,7 +8,7 @@ Prerequisites
 vmam Server
 ***********
 
-The server hosting vmam must be unix-like and with systemd installed.
+The server hosting *vmam* must be unix-like and with systemd installed.
 
 Client on the network
 *********************

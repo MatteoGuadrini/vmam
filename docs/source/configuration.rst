@@ -8,7 +8,7 @@ Configuration File
 Config Mode
 ***********
 
-To generate an empty configuration file, type at the command line (or through its function, see the *vmam* module):
+To generate an empty configuration file, type at the command line (or through its function, see the `*vmam* module <vmam.html>`_):
 
 .. code-block:: console
 

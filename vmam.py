@@ -1035,7 +1035,6 @@ def check_vlan_attributes(value, method='like', *attributes):
 
 # endregion
 
-
 # region Start process
 
 if __name__ == '__main__':
@@ -1577,15 +1576,10 @@ if __name__ == '__main__':
                                                 for mac in macs:
                                                     # Create mac-address user and assign to VLAN groups
                                                     if 'user' in cfg['LDAP']['add_group_type']:
-                                                        desc = 'User:{0}, Computer:{1}'.format(
+                                                        desc = 'User: {0}, Computer: {1}'.format(
                                                             users[0][0], c_attribute.get('name'))
                                                         cli_new_mac(cfg, bind, mac, vid, wt, arguments,
                                                                     description=desc)
-                                                        # Add description to computer account
-                                                        set_user(bind, c_attribute.get('distinguishedname'),
-                                                                 description='User: {0} Mac: {1}'.format(
-                                                                     users[0][0], macs
-                                                                 ))
                                                     else:
                                                         debugger(arguments.verbose, wt,
                                                                  'No "user" in configuration file: LDAP->add_group_type'
@@ -1598,7 +1592,7 @@ if __name__ == '__main__':
                                                                        name=cfg['VMAM']['vlan_group_id'][vid])
                                                         gdn = g[0].get('dn')
                                                         cdn = c_attribute.get('distinguishedname')
-                                                        # Add VLAN LDAP group to user mac address
+                                                        # Add VLAN LDAP group to computer account
                                                         if cdn not in g[0]['attributes']['member']:
                                                             add_to_group(bind, gdn, cdn)
                                                             print('Add VLAN group {0} to user {1}'.format(gdn, cdn))
@@ -1611,7 +1605,11 @@ if __name__ == '__main__':
                                                         # Add description to computer account
                                                         set_user(bind, c_attribute.get('distinguishedname'),
                                                                  description='User: {0} Mac: {1}'.format(
-                                                                     users[0][0], macs
+                                                                     users[0][0],
+                                                                     ' '.join(
+                                                                         [mac_format(mac, cfg['VMAM']['mac_format'])
+                                                                          for mac in macs]
+                                                                     )
                                                                  ))
                                                     else:
                                                         debugger(arguments.verbose, wt,
