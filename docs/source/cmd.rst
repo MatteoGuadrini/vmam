@@ -139,3 +139,10 @@ If something goes wrong, the process does not exit but writes error lines to the
 .. note::
 
     If you don't specify the file path, it will create a configuration file in a default path: ``/etc/vmam/vmam.yml``
+
+Common Parameter
+****************
+
+``--version/-V {parameter}``: Print version and exit
+
+``--verbose/-v {parameter}``: Print and log verbose information, for debugging
