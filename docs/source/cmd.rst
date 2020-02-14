@@ -140,6 +140,44 @@ If something goes wrong, the process does not exit but writes error lines to the
 
     If you don't specify the file path, it will create a configuration file in a default path: ``/etc/vmam/vmam.yml``
 
+Service
+-------
+
+You can create a systemd service to make vmam operational by booting the operating system.
+In addition, this allows you to do all systemd operations (stop, start, restart etc.).
+Let's create this file ``/etc/systemd/system/vmamd.service`` with this content:
+
+.. code-block:: cfg
+
+    # systemd unit file for the vmam daemon
+
+    [Unit]
+    # Human readable name of the unit
+    Description=vmam Service
+
+    [Service]
+    # Command to execute when the service is started (add -v for debug)
+    ExecStart=vmam start -d
+    # Disable Python's buffering of STDOUT and STDERR, so that output from the
+    # service shows up immediately in systemd's logs
+    Environment=PYTHONUNBUFFERED=1
+    # Automatically restart the service if it crashes
+    Restart=on-failure
+    # Our service will notify systemd once it is up and running
+    Type=notify
+
+    [Install]
+    # Tell systemd to automatically start this service when the system boots
+    # (assuming the service is enabled)
+    WantedBy=default.target
+
+Now we can enable and start it:
+
+.. code-block:: console
+
+    $> systemctl enable vmamd
+    $> systemctl start vmamd
+
 Common Parameter
 ****************
 
