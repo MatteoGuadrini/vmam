@@ -44,7 +44,7 @@ Usage for command line:
             Create a new configuration in a standard path: /etc/vmam/vmam.cfg
 
             --get-cmd/-g {parameter}: Instruction to obtain the appropriate commands to configure your network
-            infrastructure and radius server around the created configuration file. By specifying a path, it creates
+            infrastructure and radius server around the created configuration file. By specifying a path, get
             the file in the indicated path. The default path is /etc/vmam/vmam.cfg
 
             $> vmam config --get-cmd
@@ -80,12 +80,12 @@ Usage for command line:
             $> vmam mac --disable 000018ff12dd
             Disable mac-address user 000018ff12dd, based on standard configuration file: /etc/vmam/vmam.cfg
 
-            --force/-f {parameter}: Force add/remove/disable action
+            --force/-f {parameter}: Force remove/disable action
 
             $> vmam mac --remove 000018ff12dd --force
             Force remove mac-address user 000018ff12dd, based on standard configuration file: /etc/vmam/vmam.cfg
 
-            $> vmam mac --add 000018ff12dd --vlan-id 111 --force
+            $> vmam mac --add 000018ff12dd --vlan-id 111
             Modify new or existing mac-address user with VLAN 111, based on standard configuration
             file: /etc/vmam/vmam.cfg
 
@@ -336,9 +336,9 @@ def get_platform():
     # Create os info object
     os_info = {}
     # Check os
-    if platform.system() == "Windows":
-        os_info['conf_default'] = os.path.expandvars(r'%PROGRAMFILES%\vmam\vmam.yml')
-        os_info['log_default'] = os.path.expandvars(r'%WINDIR%\Logs\vmam\vmam.log')
+    if platform.system() == "Darwin":
+        os_info['conf_default'] = os.path.expandvars('/private/etc/vmam/vmam.yml')
+        os_info['log_default'] = os.path.expandvars('/private/var/vmam/vmam.log')
     else:
         os_info['conf_default'] = '/etc/vmam/vmam.yml'
         os_info['log_default'] = '/var/log/vmam/vmam.log'
@@ -368,7 +368,6 @@ def new_config(path=(get_platform()['conf_default'])):
             'computer_base_dn': 'DC=foo,DC=bar',
             'mac_user_base_dn': 'OU=mac-users,DC=foo,DC=bar',
             'mac_user_ttl': '365d',
-            'max_computer_sync': 0,
             'time_computer_sync': '1m',
             'verify_attrib': ['memberof', 'cn'],
             'write_attrib': 'extensionattribute1',
@@ -1036,7 +1035,6 @@ def check_vlan_attributes(value, method='like', *attributes):
 
 # endregion
 
-
 # region Start process
 
 if __name__ == '__main__':
@@ -1578,15 +1576,10 @@ if __name__ == '__main__':
                                                 for mac in macs:
                                                     # Create mac-address user and assign to VLAN groups
                                                     if 'user' in cfg['LDAP']['add_group_type']:
-                                                        desc = 'User:{0}, Computer:{1}'.format(
+                                                        desc = 'User: {0}, Computer: {1}'.format(
                                                             users[0][0], c_attribute.get('name'))
                                                         cli_new_mac(cfg, bind, mac, vid, wt, arguments,
                                                                     description=desc)
-                                                        # Add description to computer account
-                                                        set_user(bind, c_attribute.get('distinguishedname'),
-                                                                 description='User: {0} Mac: {1}'.format(
-                                                                     users[0][0], macs
-                                                                 ))
                                                     else:
                                                         debugger(arguments.verbose, wt,
                                                                  'No "user" in configuration file: LDAP->add_group_type'
@@ -1599,7 +1592,7 @@ if __name__ == '__main__':
                                                                        name=cfg['VMAM']['vlan_group_id'][vid])
                                                         gdn = g[0].get('dn')
                                                         cdn = c_attribute.get('distinguishedname')
-                                                        # Add VLAN LDAP group to user mac address
+                                                        # Add VLAN LDAP group to computer account
                                                         if cdn not in g[0]['attributes']['member']:
                                                             add_to_group(bind, gdn, cdn)
                                                             print('Add VLAN group {0} to user {1}'.format(gdn, cdn))
@@ -1612,7 +1605,11 @@ if __name__ == '__main__':
                                                         # Add description to computer account
                                                         set_user(bind, c_attribute.get('distinguishedname'),
                                                                  description='User: {0} Mac: {1}'.format(
-                                                                     users[0][0], macs
+                                                                     users[0][0],
+                                                                     ' '.join(
+                                                                         [mac_format(mac, cfg['VMAM']['mac_format'])
+                                                                          for mac in macs]
+                                                                     )
                                                                  ))
                                                     else:
                                                         debugger(arguments.verbose, wt,
