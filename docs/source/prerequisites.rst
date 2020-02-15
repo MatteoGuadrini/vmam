@@ -10,6 +10,16 @@ vmam Server
 
 The server hosting *vmam* must be unix-like and with systemd installed.
 
+Python
+======
+
+*vmam* is written in python3 (3.3 and higher).
+It also uses three third-party python libraries, necessary for the correct functioning of the tool:
+
+- `pywinrm <https://github.com/diyan/pywinrm>`_
+- `ldap3 <https://github.com/cannatag/ldap3>`_
+- `daemon <https://pagure.io/python-daemon>`_
+
 Client on the network
 *********************
 The clients on the network managed by vmam must be Windows machines, with `WINRM <https://en.wikipedia.org/wiki/Windows_Remote_Management>`_ enabled.
