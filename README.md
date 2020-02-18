@@ -86,6 +86,9 @@ Now it will be enough, edit and customize the configuration file following the d
 
 This command will return the guide to correctly configure LDAP and the radius server based on the configuration file.
 
+## Documentation
+The official documentation for more details of configuration and implementations, is here: [docs](https://vmam.readthedocs.io/en/latest/)
+
 ## Open source
 _vmam_ is a open source project. Any contribute, It's welcome.
 
