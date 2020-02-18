@@ -1,6 +1,7 @@
 # vmam: VLAN Mac-address Authentication Manager
 
-![vmam logo](https://raw.githubusercontent.com/MatteoGuadrini/vmam/master/img/vmam.png)
+<img src="https://raw.githubusercontent.com/MatteoGuadrini/vmam/master/img/vmam.png" alt="vmam" title="vmam" width="210" height="210" />
+<br>
 
 `vmam` is a command line tool which allows the management and maintenance of the mac-addresses 
 that access the network under a specific domain and a specific VLAN, through LDAP authentication and RADIUS server.
