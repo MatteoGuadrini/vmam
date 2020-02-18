@@ -73,7 +73,7 @@ LDAP section
 This is the LDAP section
 
 ==================      ========================================
-Key                     Value
+**Key**                 **Value**
 ==================      ========================================
 add_group_type          "user" or "computer" [list]
 bind_user               LDAP user with write privileges [string]
@@ -99,7 +99,7 @@ VMAM section
 This is the VMAM section
 
 ==================      ========================================
-Key                     Value
+**Key**                 **Value**
 ==================      ========================================
 filter_exclude          Mac-address filters to be excluded (See output of command ``getmac /fo csv /v``) [list]
 log                     Path of vmam log [string]
