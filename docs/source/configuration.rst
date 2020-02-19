@@ -49,6 +49,7 @@ The configuration file is in `YAML <https://yaml.org/>`_ format.
       - TAP
       - disconnect
       log: /tmp/vmam.log                        # Path of vmam log
+      remove_process: true                      # Enable vmam remove or disabling process; disabling depend of "soft_deletion"
       mac_format: none                          # Mac-address format (none - dot - hypens - colon)
       soft_deletion: true                       # If this is true, the mac-addresses are disabled and not deleted
       user_match_id:                            # Based on the attribute specified in "verify_attrib". The key is the value to be matched while the value is the VLAN id
@@ -103,6 +104,7 @@ This is the VMAM section
 ==================      ========================================
 filter_exclude          Mac-address filters to be excluded (See output of command ``getmac /fo csv /v``) [list]
 log                     Path of vmam log [string]
+remove_process          Enable vmam remove or disabling process; disabling depend of "soft_deletion" [boolean]
 mac_format              "none", "dot", "hypens" or "colon" [string]
 soft_deletion           If this is "true", the mac-addresses are disabled and not deleted [boolean]
 user_match_id           Based on the attribute specified in "verify_attrib". The key is the value to be matched while the value is the VLAN id [dictionary]
