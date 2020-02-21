@@ -152,6 +152,7 @@ COPYRIGHT
 import daemon
 import ldap3
 import winrm
+import yaml
 
 # endregion
 
@@ -159,7 +160,6 @@ import winrm
 
 import os
 import sys
-import yaml
 import time
 import socket
 import logging
@@ -1101,7 +1101,7 @@ if __name__ == '__main__':
         :return: Boolean
         """
         # List of dependencies modules
-        mods = ['daemon', 'ldap3', 'winrm']
+        mods = ['daemon', 'ldap3', 'winrm', 'yaml']
         # Check import dependencies
         for mod in mods:
             assert check_module(mod), 'Install "{0}" module with pip install.'.format(mod)

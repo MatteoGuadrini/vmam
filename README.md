@@ -12,6 +12,7 @@ This is based on [RFC 3579](https://tools.ietf.org/html/rfc3579#section-2.1).
 - [x] [pywinrm](https://github.com/diyan/pywinrm)
 - [x] [ldap3](https://github.com/cannatag/ldap3)
 - [x] [deamon](https://pagure.io/python-daemon/)
+- [x] [pyyaml](https://pyyaml.org/)
 
 ## What's vmam?
 
@@ -114,7 +115,7 @@ Come today, we are organized to dare to listen to them and answers, every day of
 
 ## Acknowledgments
 
-Thanks Alexey Diyan for pywinrm module; thanks Giovanni Cannata for ldap3 module; thanks Ben Finney for python-daemon module.
+Thanks Alexey Diyan for pywinrm module; thanks Giovanni Cannata for ldap3 module; thanks Ben Finney for python-daemon module; thanks to all yaml team.
 
 Special thanks go to my wife, who understood the hours of absence for this development. 
 Thanks to my children, for the daily inspiration they give me and to make me realize, that life must be simple.

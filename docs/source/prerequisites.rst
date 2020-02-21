@@ -19,6 +19,7 @@ It also uses three third-party python libraries, necessary for the correct funct
 - `pywinrm <https://github.com/diyan/pywinrm>`_
 - `ldap3 <https://github.com/cannatag/ldap3>`_
 - `daemon <https://pagure.io/python-daemon>`_
+- `pyyaml <https://pyyaml.org/>`_
 
 Client on the network
 *********************
