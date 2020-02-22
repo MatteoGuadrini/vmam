@@ -37,6 +37,17 @@ Manual mode work with only mac-address user and therefore the operating system i
 
 **vmam** is installed as a server. 
 
+
+## Installation
+
+The installation of *vmam* is very simple. Just run these commands:
+
+```bash
+git clone https://github.com/MatteoGuadrini/vmam.git
+cd vmam
+sudo python3 setup.py install
+```
+
 ### Manual mode
 
 In manual mode, mac-addresses are managed from the command line using the `vmam mac` command.

@@ -92,3 +92,14 @@ To configure your network devices, you need to follow and search the manuals for
 2. Create and configure a RADIUS server template, an AAA authentication scheme, and an authentication domain.
 3. Enable MAC authentication.
 4. Configure the post-authentication domain.
+
+Installation
+############
+
+The installation of *vmam* is very simple. Just run these commands:
+
+.. code-block:: console
+
+    git clone https://github.com/MatteoGuadrini/vmam.git
+    cd vmam
+    sudo python3 setup.py install
