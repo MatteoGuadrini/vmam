@@ -1,6 +1,7 @@
 # vmam: VLAN Mac-address Authentication Manager
 
-![vmam logo](https://raw.githubusercontent.com/MatteoGuadrini/vmam/master/img/vmam.png)
+<img src="https://raw.githubusercontent.com/MatteoGuadrini/vmam/master/img/vmam.png" alt="vmam" title="vmam" width="210" height="210" />
+<br>
 
 `vmam` is a command line tool which allows the management and maintenance of the mac-addresses 
 that access the network under a specific domain and a specific VLAN, through LDAP authentication and RADIUS server.
@@ -11,6 +12,7 @@ This is based on [RFC 3579](https://tools.ietf.org/html/rfc3579#section-2.1).
 - [x] [pywinrm](https://github.com/diyan/pywinrm)
 - [x] [ldap3](https://github.com/cannatag/ldap3)
 - [x] [deamon](https://pagure.io/python-daemon/)
+- [x] [pyyaml](https://pyyaml.org/)
 
 ## What's vmam?
 
@@ -34,6 +36,17 @@ Manual mode work with only mac-address user and therefore the operating system i
 ## How do you do it?
 
 **vmam** is installed as a server. 
+
+
+## Installation
+
+The installation of *vmam* is very simple. Just run these commands:
+
+```bash
+git clone https://github.com/MatteoGuadrini/vmam.git
+cd vmam
+sudo python3 setup.py install
+```
 
 ### Manual mode
 
@@ -86,6 +99,9 @@ Now it will be enough, edit and customize the configuration file following the d
 
 This command will return the guide to correctly configure LDAP and the radius server based on the configuration file.
 
+## Documentation
+The official documentation for more details of configuration and implementations, is here: [docs](https://vmam.readthedocs.io/en/latest/)
+
 ## Open source
 _vmam_ is a open source project. Any contribute, It's welcome.
 
@@ -110,7 +126,7 @@ Come today, we are organized to dare to listen to them and answers, every day of
 
 ## Acknowledgments
 
-Thanks Alexey Diyan for pywinrm module; thanks Giovanni Cannata for ldap3 module; thanks Ben Finney for python-daemon module.
+Thanks Alexey Diyan for pywinrm module; thanks Giovanni Cannata for ldap3 module; thanks Ben Finney for python-daemon module; thanks to all yaml team.
 
 Special thanks go to my wife, who understood the hours of absence for this development. 
 Thanks to my children, for the daily inspiration they give me and to make me realize, that life must be simple.

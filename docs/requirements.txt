@@ -1,0 +1,4 @@
+python-daemon
+ldap3
+pywinrm
+pyyaml

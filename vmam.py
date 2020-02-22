@@ -152,6 +152,7 @@ COPYRIGHT
 import daemon
 import ldap3
 import winrm
+import yaml
 
 # endregion
 
@@ -159,7 +160,6 @@ import winrm
 
 import os
 import sys
-import yaml
 import time
 import socket
 import logging
@@ -380,6 +380,7 @@ def new_config(path=(get_platform()['conf_default'])):
             'soft_deletion': 'true|false',
             'filter_exclude': ['list1', 'list2'],
             'log': get_platform()['log_default'],
+            'remove_process': True,
             'user_match_id': {
                 'value1': 100,
                 'value2': 101
@@ -1100,7 +1101,7 @@ if __name__ == '__main__':
         :return: Boolean
         """
         # List of dependencies modules
-        mods = ['daemon', 'ldap3', 'winrm']
+        mods = ['daemon', 'ldap3', 'winrm', 'yaml']
         # Check import dependencies
         for mod in mods:
             assert check_module(mod), 'Install "{0}" module with pip install.'.format(mod)
@@ -1632,28 +1633,29 @@ if __name__ == '__main__':
                         continue
                 else:
                     debugger(arguments.verbose, wt, 'Computer {0} unreachable'.format(c_attribute['name']))
-        debugger(arguments.verbose, wt, 'Start disable/delete process')
-        # Get old mac-address user
-        debugger(arguments.verbose, wt, 'Convert datetime format to filetime format for mac-address user query')
-        # Get value for soft deletion
-        soft_deletion = cfg['LDAP']['mac_user_ttl']
-        td = get_time_sync(cfg['LDAP']['mac_user_ttl'])
-        ft = datetime_to_filetime(td)
-        write_attrib = cfg['LDAP']['write_attrib'] if cfg['LDAP']['write_attrib'] else 'employeetype'
-        macaddresses = query_ldap(bind, cfg['LDAP']['mac_user_base_dn'],
-                                  ['name', write_attrib, 'samaccountname', 'distinguishedname', 'whencreated'],
-                                  comp='<=', objectcategory='user', lastlogontimestamp=ft)
-        if macaddresses:
-            for mac in macaddresses:
-                # Check if mac-address user don't live in time-to-live period
-                wc = datetime_to_filetime(mac.get('attributes').get('whencreated'))
-                if ft > wc:
-                    if soft_deletion:
-                        # Disable mac-address
-                        cli_disable_mac(cfg, bind, mac.get('attributes').get('samaccountname'), wt, arguments)
-                    else:
-                        # Remove mac-address
-                        cli_delete_mac(cfg, bind, mac.get('attributes').get('samaccountname'), wt, arguments)
+        if cfg['VMAM'].get('remove_process'):
+            debugger(arguments.verbose, wt, 'Start disable/delete process')
+            # Get old mac-address user
+            debugger(arguments.verbose, wt, 'Convert datetime format to filetime format for mac-address user query')
+            # Get value for soft deletion
+            soft_deletion = cfg['LDAP']['mac_user_ttl']
+            td = get_time_sync(cfg['LDAP']['mac_user_ttl'])
+            ft = datetime_to_filetime(td)
+            write_attrib = cfg['LDAP']['write_attrib'] if cfg['LDAP']['write_attrib'] else 'employeetype'
+            macaddresses = query_ldap(bind, cfg['LDAP']['mac_user_base_dn'],
+                                      ['name', write_attrib, 'samaccountname', 'distinguishedname', 'whencreated'],
+                                      comp='<=', objectcategory='user', lastlogontimestamp=ft)
+            if macaddresses:
+                for mac in macaddresses:
+                    # Check if mac-address user don't live in time-to-live period
+                    wc = datetime_to_filetime(mac.get('attributes').get('whencreated'))
+                    if ft > wc:
+                        if soft_deletion:
+                            # Disable mac-address
+                            cli_disable_mac(cfg, bind, mac.get('attributes').get('samaccountname'), wt, arguments)
+                        else:
+                            # Remove mac-address
+                            cli_delete_mac(cfg, bind, mac.get('attributes').get('samaccountname'), wt, arguments)
         # Unbind LDAP connection
         debugger(arguments.verbose, wt, 'Unbind on LDAP servers {0}'.format(','.join(cfg['LDAP']['servers'])))
         unbind_ldap(bind)
