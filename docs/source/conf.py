@@ -56,3 +56,5 @@ html_theme_options = {
     'logo_only': False
 }
 html_logo = "../../img/vmam.png"
+
+master_doc = 'index'
