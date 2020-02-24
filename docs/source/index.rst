@@ -28,6 +28,7 @@ RFC
    prerequisites
    configuration
    cmd
+   exitcode
    modules
    support
 
