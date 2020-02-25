@@ -16,6 +16,8 @@ import sys
 sys.path.append(os.path.abspath('../..'))
 sys.path.append(os.path.abspath('..'))
 
+from vmam import VERSION
+
 # -- Project information -----------------------------------------------------
 
 project = 'vmam'
@@ -23,7 +25,7 @@ copyright = '2020, Matteo Guadrini'
 author = 'Matteo Guadrini'
 
 # The full version, including alpha/beta/rc tags
-release = '1.0.0'
+release = VERSION
 
 # -- General configuration ---------------------------------------------------
 

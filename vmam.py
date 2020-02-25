@@ -193,7 +193,7 @@ __all__ = ['logwriter', 'debugger', 'confirm', 'read_config', 'get_platform', 'n
            'check_connection', 'check_config', 'connect_ldap', 'unbind_ldap', 'query_ldap', 'check_ldap_version',
            'new_user', 'set_user', 'delete_user', 'set_user_password', 'add_to_group', 'remove_to_group',
            'filetime_to_datetime', 'datetime_to_filetime', 'get_time_sync', 'string_to_datetime', 'mac_format',
-           'connect_client', 'run_command', 'get_mac_address', 'get_client_user', 'check_vlan_attributes']
+           'connect_client', 'run_command', 'get_mac_address', 'get_client_user', 'check_vlan_attributes', 'VERSION']
 
 
 # endregion
