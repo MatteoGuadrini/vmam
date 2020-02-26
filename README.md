@@ -67,7 +67,7 @@ contacts ldap, takes the last machines that contact the LDAP server, contacts th
 takes the information of the last connected user and the tabs of active network, LDAP check to see which VLAN-ID (LDAP group)
 assign to the mac-address and then exit.
 
-If you were to specify the `--deamon/-d` argument then the process would continue until a manual interrupt (<kbd>CTRL</kbd>+<kbd>C</kbd>).
+If you were to specify the `--daemon/-d` argument then the process would continue until a manual interrupt (kill the process).
 
 
 ## How to start

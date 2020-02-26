@@ -21,10 +21,11 @@
 #     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from setuptools import setup
+from vmam import VERSION
 
 setup(
     name='vmam',
-    version='1.0.0',
+    version=VERSION,
     py_modules=['vmam'],
     url='https://github.com/matteoguadrini/vmam',
     license='GNU General Public License v3.0',
