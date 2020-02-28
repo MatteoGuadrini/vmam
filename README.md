@@ -40,7 +40,13 @@ Manual mode work with only mac-address user and therefore the operating system i
 
 ## Installation
 
-The installation of *vmam* is very simple. Just run these commands:
+The installation of *vmam* is very simple. With *pip*:
+
+```bash
+pip install vmam
+```
+
+Or just run these commands:
 
 ```bash
 git clone https://github.com/MatteoGuadrini/vmam.git

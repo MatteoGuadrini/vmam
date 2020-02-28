@@ -96,7 +96,13 @@ To configure your network devices, you need to follow and search the manuals for
 Installation
 ############
 
-The installation of *vmam* is very simple. Just run these commands:
+The installation of *vmam* is very simple. With *pip*:
+
+.. code-block:: console
+
+    pip install vmam
+
+Or just run these commands:
 
 .. code-block:: console
 
