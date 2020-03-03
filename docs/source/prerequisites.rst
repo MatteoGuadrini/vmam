@@ -23,8 +23,9 @@ It also uses three third-party python libraries, necessary for the correct funct
 
 Client on the network
 *********************
-The clients on the network managed by vmam must be Windows machines, with `WINRM <https://en.wikipedia.org/wiki/Windows_Remote_Management>`_ enabled.
+If you use an automatic mode, the clients on the network managed by *vmam* must be Windows machines, with `WINRM <https://en.wikipedia.org/wiki/Windows_Remote_Management>`_ enabled.
 To enable it, run ``winrm quickconfig``.
+On the other hand, if you use the manual process, the clients can be anything (linux, MacOSX, BSD, printers, router, etc.)
 
 
 Directory Server
