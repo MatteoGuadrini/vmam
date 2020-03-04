@@ -134,6 +134,8 @@ Come today, we are organized to dare to listen to them and answers, every day of
 
 Thanks Alexey Diyan for pywinrm module; thanks Giovanni Cannata for ldap3 module; thanks Ben Finney for python-daemon module; thanks to all yaml team.
 
+Thanks to Mark Lutz for writing the _Learning Python_ and _Programming Python_ books that make up my python foundation.
+
 Special thanks go to my wife, who understood the hours of absence for this development. 
 Thanks to my children, for the daily inspiration they give me and to make me realize, that life must be simple.
 
