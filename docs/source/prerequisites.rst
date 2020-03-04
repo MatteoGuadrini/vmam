@@ -82,7 +82,12 @@ The radius policies must be configured so that if the mac-address users belongs 
 Network Appliance
 *****************
 
-Based on your network devices, you will need to configure *"mac-address authentication"* (`IEEE 802.1x <https://en.wikipedia.org/wiki/IEEE_802.1X>`_).
+Based on your network devices, you will need to configure *"ldap mac-address authentication"* (`IEEE 802.1x <https://en.wikipedia.org/wiki/IEEE_802.1X>`_).
+
+.. note::
+    BEST PRACTICE: MAC-based authentication is not as secure as agent access or agentless access authentication.
+    MAC addresses are not generally guarded as secrets, so an attacker can spoof a MAC address and impersonate a device to gain network access.
+    To reduce risk of an exploit, create a special VLAN for each device type.
 
 Configure Network Device
 ========================
