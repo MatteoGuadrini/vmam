@@ -1148,7 +1148,7 @@ if __name__ == '__main__':
         debugger(arguments.verbose, logger, 'Exist mac-address {0} on LDAP servers {1}?'.format(
             mac, ','.join(config['LDAP']['servers'])))
         ret = query_ldap(bind, config['LDAP']['mac_user_base_dn'], ['samaccountname'], samaccountname=mac)
-        if not ret[0].get('dn'):
+        if not ret:
             debugger(arguments.verbose, logger, 'Mac-address {0} not exists on LDAP servers {1}'.format(
                 mac, ','.join(config['LDAP']['servers'])))
             # Add mac-address to LDAP
@@ -1301,7 +1301,7 @@ if __name__ == '__main__':
         # Query: check if mac-address exist
         debugger(arguments.verbose, logger, 'Exist mac-address {0} on LDAP servers {1}?'.format(
             mac, ','.join(config['LDAP']['servers'])))
-        ret = query_ldap(bind, config['LDAP']['user_base_dn'], ['samaccountname'], samaccountname=mac)
+        ret = query_ldap(bind, config['LDAP']['mac_user_base_dn'], ['samaccountname'], samaccountname=mac)
         if ret and ret[0].get('dn'):
             force = confirm('Do you want to disable {0} mac-address?'.format(mac)) if not arguments.force else True
             if force:
@@ -1342,7 +1342,7 @@ if __name__ == '__main__':
         # Query: check if mac-address exist
         debugger(arguments.verbose, logger, 'Exist mac-address {0} on LDAP servers {1}?'.format(
             mac, ','.join(config['LDAP']['servers'])))
-        ret = query_ldap(bind, config['LDAP']['user_base_dn'], ['samaccountname'], samaccountname=mac)
+        ret = query_ldap(bind, config['LDAP']['mac_user_base_dn'], ['samaccountname'], samaccountname=mac)
         if ret and ret[0].get('dn'):
             force = confirm('Do you want to delete {0} mac-address?'.format(mac)) if not arguments.force else True
             if force:
@@ -1461,44 +1461,25 @@ if __name__ == '__main__':
         # Check mandatory entry on configuration file
         debugger(arguments.verbose, wt, 'Check mandatory fields on configuration file {0}'.format(arguments.conf))
         check_config(arguments.conf)
+        # Connect LDAP servers
+        debugger(arguments.verbose, wt,
+                 'Connect to LDAP servers {0}'.format(','.join(cfg['LDAP']['servers'])))
+        srv = connect_ldap(cfg['LDAP']['servers'], ssl=cfg['LDAP']['ssl'])
+        # Bind LDAP server
+        debugger(arguments.verbose, wt, 'Bind on LDAP servers {0} with user {1}'.format(
+            ','.join(cfg['LDAP']['servers']), cfg['LDAP']['bind_user']))
+        bind = bind_ldap(srv, cfg['LDAP']['bind_user'], cfg['LDAP']['bind_pwd'], tls=cfg['LDAP']['tls'])
         # Check actions
         if arguments.add:
             vlanid = arguments.vlanid[0]
-            # Connect LDAP servers
-            debugger(arguments.verbose, wt, 'Connect to LDAP servers {0}'.format(','.join(cfg['LDAP']['servers'])))
-            srv = connect_ldap(cfg['LDAP']['servers'], ssl=cfg['LDAP']['ssl'])
-            # Bind LDAP server
-            debugger(arguments.verbose, wt, 'Bind on LDAP servers {0} with user {1}'.format(
-                ','.join(cfg['LDAP']['servers']), cfg['LDAP']['bind_user']))
-            bind = bind_ldap(srv, cfg['LDAP']['bind_user'], cfg['LDAP']['bind_pwd'], tls=cfg['LDAP']['tls'])
             cli_new_mac(cfg, bind, ''.join(arguments.add), vlanid, wt, arguments, description=''.join(arguments.add))
-            # Unbind LDAP connection
-            unbind_ldap(bind)
         elif arguments.disable:
-            # Connect LDAP servers
-            debugger(arguments.verbose, wt,
-                     'Connect to LDAP servers {0}'.format(','.join(cfg['LDAP']['servers'])))
-            srv = connect_ldap(cfg['LDAP']['servers'], ssl=cfg['LDAP']['ssl'])
-            # Bind LDAP server
-            debugger(arguments.verbose, wt, 'Bind on LDAP servers {0} with user {1}'.format(
-                ','.join(cfg['LDAP']['servers']), cfg['LDAP']['bind_user']))
-            bind = bind_ldap(srv, cfg['LDAP']['bind_user'], cfg['LDAP']['bind_pwd'], tls=cfg['LDAP']['tls'])
             cli_disable_mac(cfg, bind, ''.join(arguments.disable), wt, arguments)
-            # Unbind LDAP connection
-            unbind_ldap(bind)
         elif arguments.remove:
-            # Connect LDAP servers
-            debugger(arguments.verbose, wt,
-                     'Connect to LDAP servers {0}'.format(','.join(cfg['LDAP']['servers'])))
-            srv = connect_ldap(cfg['LDAP']['servers'], ssl=cfg['LDAP']['ssl'])
-            # Bind LDAP server
-            debugger(arguments.verbose, wt, 'Bind on LDAP servers {0} with user {1}'.format(
-                ','.join(cfg['LDAP']['servers']), cfg['LDAP']['bind_user']))
-            bind = bind_ldap(srv, cfg['LDAP']['bind_user'], cfg['LDAP']['bind_pwd'], tls=cfg['LDAP']['tls'])
             cli_delete_mac(cfg, bind, ''.join(arguments.remove), wt, arguments)
-            # Unbind LDAP connection
-            debugger(arguments.verbose, wt, 'Unbind on LDAP servers {0}'.format(','.join(cfg['LDAP']['servers'])))
-            unbind_ldap(bind)
+        # Unbind LDAP connection
+        debugger(arguments.verbose, wt, 'Unbind on LDAP servers {0}'.format(','.join(cfg['LDAP']['servers'])))
+        unbind_ldap(bind)
 
 
     def cli_start(arguments):
