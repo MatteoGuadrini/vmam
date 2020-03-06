@@ -194,6 +194,7 @@ __all__ = ['logwriter', 'debugger', 'confirm', 'read_config', 'get_platform', 'n
            'new_user', 'set_user', 'delete_user', 'set_user_password', 'add_to_group', 'remove_to_group',
            'filetime_to_datetime', 'datetime_to_filetime', 'get_time_sync', 'string_to_datetime', 'mac_format',
            'connect_client', 'run_command', 'get_mac_address', 'get_client_user', 'check_vlan_attributes', 'VERSION']
+bind_start = False
 
 
 # endregion
@@ -1489,6 +1490,7 @@ if __name__ == '__main__':
         :param arguments: Arguments list
         :return: None
         """
+        global bind_start
         # Read the configuration file
         cfg = read_config(arguments.conf)
         # Create log writer
@@ -1503,15 +1505,17 @@ if __name__ == '__main__':
         # Bind LDAP server
         debugger(arguments.verbose, wt, 'Bind on LDAP servers {0} with user {1}'.format(
             ','.join(cfg['LDAP']['servers']), cfg['LDAP']['bind_user']))
-        bind = bind_ldap(srv, cfg['LDAP']['bind_user'], cfg['LDAP']['bind_pwd'], tls=cfg['LDAP']['tls'])
-        if bind.bound:
-            pass
+        if bind_start:
+            debugger(arguments.verbose, wt, 'The binding has already been defined. Bind:{0}'.format(bind_start.bound))
+        else:
+            debugger(arguments.verbose, wt, 'Bind!')
+            bind_start = bind_ldap(srv, cfg['LDAP']['bind_user'], cfg['LDAP']['bind_pwd'], tls=cfg['LDAP']['tls'])
         # Get computers from domain controllers
         debugger(arguments.verbose, wt, 'Convert datetime format to filetime format for computer query')
         td = get_time_sync(cfg['LDAP']['time_computer_sync'])
         ft = datetime_to_filetime(td)
         # Query LDAP to take all computer accounts based on filetime
-        computers = query_ldap(bind, cfg['LDAP']['computer_base_dn'],
+        computers = query_ldap(bind_start, cfg['LDAP']['computer_base_dn'],
                                ['name', 'employeetype', 'lastlogon', 'distinguishedname'], comp='>=',
                                objectcategory='computer', lastlogon=ft)
         # Check if there are updated computers
@@ -1539,7 +1543,7 @@ if __name__ == '__main__':
                             # Search user on LDAP server
                             try:
                                 debugger(arguments.verbose, wt, 'Search user {0} on LDAP'.format(users[0][0]))
-                                user = query_ldap(bind, cfg['LDAP']['user_base_dn'],
+                                user = query_ldap(bind_start, cfg['LDAP']['user_base_dn'],
                                                   cfg['LDAP']['verify_attrib'],
                                                   objectcategory='person', samaccountname=users[0][0])
                                 # Check the match of the attributes for the creation of the mac-address
@@ -1562,7 +1566,7 @@ if __name__ == '__main__':
                                                     if 'user' in cfg['LDAP']['add_group_type']:
                                                         desc = 'User: {0}, Computer: {1}'.format(
                                                             users[0][0], c_attribute.get('name'))
-                                                        cli_new_mac(cfg, bind, mac, vid, wt, arguments,
+                                                        cli_new_mac(cfg, bind_start, mac, vid, wt, arguments,
                                                                     description=desc)
                                                     else:
                                                         debugger(arguments.verbose, wt,
@@ -1570,7 +1574,7 @@ if __name__ == '__main__':
                                                                  )
                                                     # Assign computer to VLAN groups
                                                     if 'computer' in cfg['LDAP']['add_group_type']:
-                                                        g = query_ldap(bind, cfg['LDAP']['user_base_dn'],
+                                                        g = query_ldap(bind_start, cfg['LDAP']['user_base_dn'],
                                                                        ['member', 'distinguishedname'],
                                                                        objectclass='group',
                                                                        name=cfg['VMAM']['vlan_group_id'][vid])
@@ -1578,7 +1582,7 @@ if __name__ == '__main__':
                                                         cdn = c_attribute.get('distinguishedname')
                                                         # Add VLAN LDAP group to computer account
                                                         if cdn not in g[0]['attributes']['member']:
-                                                            add_to_group(bind, gdn, cdn)
+                                                            add_to_group(bind_start, gdn, cdn)
                                                             print('Add VLAN group {0} to user {1}'.format(gdn, cdn))
                                                             wt.info(
                                                                 'Add VLAN group {0} to user {1}'.format(gdn, cdn))
@@ -1587,7 +1591,7 @@ if __name__ == '__main__':
                                                                      'VLAN group {0} already added to user {1}'.format(
                                                                          cfg['VMAM']['vlan_group_id'][vid], cdn))
                                                         # Add description to computer account
-                                                        set_user(bind, c_attribute.get('distinguishedname'),
+                                                        set_user(bind_start, c_attribute.get('distinguishedname'),
                                                                  description='User: {0} Mac: {1}'.format(
                                                                      users[0][0],
                                                                      ' '.join(
@@ -1625,7 +1629,7 @@ if __name__ == '__main__':
             td = get_time_sync(cfg['LDAP']['mac_user_ttl'])
             ft = datetime_to_filetime(td)
             write_attrib = cfg['LDAP']['write_attrib'] if cfg['LDAP']['write_attrib'] else 'employeetype'
-            macaddresses = query_ldap(bind, cfg['LDAP']['mac_user_base_dn'],
+            macaddresses = query_ldap(bind_start, cfg['LDAP']['mac_user_base_dn'],
                                       ['name', write_attrib, 'samaccountname', 'distinguishedname', 'whencreated'],
                                       comp='<=', objectcategory='user', lastlogontimestamp=ft)
             if macaddresses:
@@ -1635,13 +1639,10 @@ if __name__ == '__main__':
                     if ft > wc:
                         if soft_deletion:
                             # Disable mac-address
-                            cli_disable_mac(cfg, bind, mac.get('attributes').get('samaccountname'), wt, arguments)
+                            cli_disable_mac(cfg, bind_start, mac.get('attributes').get('samaccountname'), wt, arguments)
                         else:
                             # Remove mac-address
-                            cli_delete_mac(cfg, bind, mac.get('attributes').get('samaccountname'), wt, arguments)
-        # Unbind LDAP connection
-        debugger(arguments.verbose, wt, 'Unbind on LDAP servers {0}'.format(','.join(cfg['LDAP']['servers'])))
-        unbind_ldap(bind)
+                            cli_delete_mac(cfg, bind_start, mac.get('attributes').get('samaccountname'), wt, arguments)
 
 
     def cli_daemon(func, *args):
