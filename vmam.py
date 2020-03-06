@@ -1504,6 +1504,8 @@ if __name__ == '__main__':
         debugger(arguments.verbose, wt, 'Bind on LDAP servers {0} with user {1}'.format(
             ','.join(cfg['LDAP']['servers']), cfg['LDAP']['bind_user']))
         bind = bind_ldap(srv, cfg['LDAP']['bind_user'], cfg['LDAP']['bind_pwd'], tls=cfg['LDAP']['tls'])
+        if bind.bound:
+            pass
         # Get computers from domain controllers
         debugger(arguments.verbose, wt, 'Convert datetime format to filetime format for computer query')
         td = get_time_sync(cfg['LDAP']['time_computer_sync'])
