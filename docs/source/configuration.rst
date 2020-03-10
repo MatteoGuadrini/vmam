@@ -50,6 +50,7 @@ The configuration file is in `YAML <https://yaml.org/>`_ format.
       - disconnect
       log: /tmp/vmam.log                        # Path of vmam log
       remove_process: true                      # Enable vmam remove or disabling process; disabling depend of "soft_deletion"
+      automatic_process_wait: 3                 # Integer represent seconds of wait for automatic process
       mac_format: none                          # Mac-address format (none - dot - hypens - colon)
       soft_deletion: true                       # If this is true, the mac-addresses are disabled and not deleted
       user_match_id:                            # Based on the attribute specified in "verify_attrib". The key is the value to be matched while the value is the VLAN id
@@ -99,19 +100,20 @@ VMAM section
 
 This is the VMAM section
 
-==================      ========================================
+======================= ========================================
 **Key**                 **Value**
-==================      ========================================
+======================= ========================================
 filter_exclude          Mac-address filters to be excluded (See output of command ``getmac /fo csv /v``) [list]
 log                     Path of vmam log [string]
 remove_process          Enable vmam remove or disabling process; disabling depend of "soft_deletion" [boolean]
 mac_format              "none", "dot", "hypens" or "colon" [string]
+automatic_process_wait  Integer represent seconds of wait for automatic process [int]
 soft_deletion           If this is "true", the mac-addresses are disabled and not deleted [boolean]
 user_match_id           Based on the attribute specified in "verify_attrib". The key is the value to be matched while the value is the VLAN id [dictionary]
 vlan_group_id           The key is the group VLAN id. The value is the name of the LDAP group [dictionary]
 winrm_user              WINRM user with admin privileges [string]
 winrm_pwd               WINRM password of "winrm_user" [string]
-==================      ========================================
+======================= ========================================
 
 
 Get prerequisites configuration

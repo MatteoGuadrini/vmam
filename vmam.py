@@ -188,7 +188,7 @@ def check_module(module):
 # endregion
 
 # region Global variable
-VERSION = '1.1.0'
+VERSION = '1.1.1'
 __all__ = ['logwriter', 'debugger', 'confirm', 'read_config', 'get_platform', 'new_config', 'bind_ldap',
            'check_connection', 'check_config', 'connect_ldap', 'unbind_ldap', 'query_ldap', 'check_ldap_version',
            'new_user', 'set_user', 'delete_user', 'set_user_password', 'add_to_group', 'remove_to_group',
@@ -381,6 +381,7 @@ def new_config(path=(get_platform()['conf_default'])):
             'soft_deletion': 'true|false',
             'filter_exclude': ['list1', 'list2'],
             'log': get_platform()['log_default'],
+            'automatic_process_wait': 3,
             'remove_process': True,
             'user_match_id': {
                 'value1': 100,
@@ -456,6 +457,8 @@ def check_config(path):
     assert ('mac_format' in config['VMAM'] and config['VMAM']['mac_format']), 'Required VMAM:mac_format: field!'
     assert ('soft_deletion' in config['VMAM'] and
             config['VMAM']['soft_deletion']), 'Required VMAM:soft_deletion: field!'
+    assert ('automatic_process_wait' in config['VMAM'] and
+            isinstance(config['VMAM']['automatic_process_wait'], int)), 'Required VMAM:automatic_process_wait: field!'
     assert ('user_match_id' in config['VMAM'] and
             len(config['VMAM']['user_match_id'].keys()) > 0), 'Required VMAM:user_match_id: field!'
     assert ('vlan_group_id' in config['VMAM'] and
@@ -1503,12 +1506,11 @@ if __name__ == '__main__':
         debugger(arguments.verbose, wt, 'Connect to LDAP servers {0}'.format(','.join(cfg['LDAP']['servers'])))
         srv = connect_ldap(cfg['LDAP']['servers'], ssl=cfg['LDAP']['ssl'])
         # Bind LDAP server
-        debugger(arguments.verbose, wt, 'Bind on LDAP servers {0} with user {1}'.format(
-            ','.join(cfg['LDAP']['servers']), cfg['LDAP']['bind_user']))
         if bind_start:
             debugger(arguments.verbose, wt, 'The binding has already been defined. Bind:{0}'.format(bind_start.bound))
         else:
-            debugger(arguments.verbose, wt, 'Bind!')
+            debugger(arguments.verbose, wt, 'Bind on LDAP servers {0} with user {1}'.format(
+                ','.join(cfg['LDAP']['servers']), cfg['LDAP']['bind_user']))
             bind_start = bind_ldap(srv, cfg['LDAP']['bind_user'], cfg['LDAP']['bind_pwd'], tls=cfg['LDAP']['tls'])
         # Get computers from domain controllers
         debugger(arguments.verbose, wt, 'Convert datetime format to filetime format for computer query')
@@ -1645,11 +1647,12 @@ if __name__ == '__main__':
                             cli_delete_mac(cfg, bind_start, mac.get('attributes').get('samaccountname'), wt, arguments)
 
 
-    def cli_daemon(func, *args):
+    def cli_daemon(func, wait=1, *args):
         """
         Run vmam as a daemon
 
         :param func: function passed
+        :param wait: wait seconds of the infinite loop
         :param args: arguments passed to function
         :return: None
         """
@@ -1657,7 +1660,7 @@ if __name__ == '__main__':
             # Run endlessly
             while True:
                 func(*args)
-                time.sleep(3)
+                time.sleep(wait)
 
 
     def main():
@@ -1680,7 +1683,9 @@ if __name__ == '__main__':
         # Deamon?
         if 'daemon' in args and args.daemon:
             print('Start vmam daemon...')
-            cli_daemon(cli, args)
+            # Read the configuration file
+            cfg = read_config(args.conf)
+            cli_daemon(cli, cfg.get('VMAM').get('automatic_process_wait'), args)
         else:
             cli(args)
 
