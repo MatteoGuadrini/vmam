@@ -592,35 +592,29 @@ def query_ldap(bind_object, base_search, attributes, comp='=', **filters):
         return bind_object.response
 
 
-def check_ldap_version(bind_object, base_search):
+def check_ldap_version(bind_object):
     """
     Determines the LDAP version
 
     :param bind_object: LDAP bind object
-    :param base_search: distinguishedName of LDAP base search
-    :return: LDAP version
+    :return: LDAP version code: MS-LDAP or N-LDAP or LDAP
 
     .. testcode::
 
         >>> conn = connect_ldap(['dc1.foo.bar'])
         >>> bind = bind_ldap(conn, r'domain\\user', 'password', tls=True)
-        >>> ret = check_ldap_version(bind, 'dc=foo,dc=bar')
+        >>> ret = check_ldap_version(bind)
         >>> print(ret)
     """
-    # Query!
-    try:
-        # MS-LDAP query
-        query = '(&(&(&(&(samAccountType=805306369)(primaryGroupId=516))(objectCategory=computer)(operatingSystem=*))))'
-        bind_object.search(search_base=base_search, search_filter=query, search_scope=ldap3.SUBTREE)
+    # Microsoft LDAP
+    if 'MICROSOFT' in bind_object.server.info.supported_controls[0]:
         return 'MS-LDAP'
-    except ldap3.core.exceptions.LDAPObjectClassError:
-        try:
-            # Novell-LDAP query
-            query = '(objectClass=ncpServer)'
-            bind_object.search(search_base=base_search, search_filter=query, search_scope=ldap3.SUBTREE)
-            return 'N-LDAP'
-        except ldap3.core.exceptions.LDAPObjectClassError:
-            return 'LDAP'
+    # Novell LDAP
+    elif 'eDirectory' in bind_object.server.info.vendor_version:
+        return 'N-LDAP'
+    # Standard LDAP
+    else:
+        return 'LDAP'
 
 
 def new_user(bind_object, username, **attributes):
@@ -1145,7 +1139,7 @@ if __name__ == '__main__':
             mac, ','.join(config['LDAP']['servers']), vgroup))
         debugger(arguments.verbose, logger, 'Add mac-address {0} on LDAP servers {1} in {2} VLAN group'.format(
             mac, ','.join(config['LDAP']['servers']), vgroup))
-        ldap_v = check_ldap_version(bind, config['LDAP']['user_base_dn'])
+        ldap_v = check_ldap_version(bind)
         ids = 'cn' if ldap_v == 'MS-LDAP' else 'uid'
         dn = '{0}={1},{2}'.format(ids, mac, config['LDAP']['mac_user_base_dn'])
         # Query: check if mac-address exist
@@ -1299,7 +1293,7 @@ if __name__ == '__main__':
         print('Disable mac-address {0} on LDAP servers {1}'.format(mac, ','.join(config['LDAP']['servers'])))
         debugger(arguments.verbose, logger, 'Disable mac-address {0} on LDAP servers {1}'.format(
             mac, ','.join(config['LDAP']['servers'])))
-        ldap_v = check_ldap_version(bind, config['LDAP']['user_base_dn'])
+        ldap_v = check_ldap_version(bind)
         ids = 'cn' if ldap_v == 'MS-LDAP' else 'uid'
         dn = '{0}={1},{2}'.format(ids, mac, config['LDAP']['mac_user_base_dn'])
         # Query: check if mac-address exist
@@ -1340,7 +1334,7 @@ if __name__ == '__main__':
         print('Delete mac-address {0} on LDAP servers {1}'.format(mac, ','.join(config['LDAP']['servers'])))
         debugger(arguments.verbose, logger, 'Delete mac-address {0} on LDAP servers {1}'.format(
             mac, ','.join(config['LDAP']['servers'])))
-        ldap_v = check_ldap_version(bind, config['LDAP']['user_base_dn'])
+        ldap_v = check_ldap_version(bind)
         ids = 'cn' if ldap_v == 'MS-LDAP' else 'uid'
         dn = '{0}={1},{2}'.format(ids, mac, config['LDAP']['mac_user_base_dn'])
         # Query: check if mac-address exist
