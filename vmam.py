@@ -188,7 +188,7 @@ def check_module(module):
 # endregion
 
 # region Global variable
-VERSION = '1.1.1'
+VERSION = '1.1.2'
 __all__ = ['logwriter', 'debugger', 'confirm', 'read_config', 'get_platform', 'new_config', 'bind_ldap',
            'check_connection', 'check_config', 'connect_ldap', 'unbind_ldap', 'query_ldap', 'check_ldap_version',
            'new_user', 'set_user', 'delete_user', 'set_user_password', 'add_to_group', 'remove_to_group',
@@ -199,7 +199,7 @@ bind_start = False
 
 # endregion
 
-# region Functions
+    # region Functions
 
 
 def printv(*messages):
@@ -1579,9 +1579,9 @@ if __name__ == '__main__':
                                                         # Add VLAN LDAP group to computer account
                                                         if cdn not in g[0]['attributes']['member']:
                                                             add_to_group(bind_start, gdn, cdn)
-                                                            print('Add VLAN group {0} to user {1}'.format(gdn, cdn))
+                                                            print('Add VLAN group {0} to computer {1}'.format(gdn, cdn))
                                                             wt.info(
-                                                                'Add VLAN group {0} to user {1}'.format(gdn, cdn))
+                                                                'Add VLAN group {0} to computer {1}'.format(gdn, cdn))
                                                         else:
                                                             debugger(arguments.verbose, wt,
                                                                      'VLAN group {0} already added to user {1}'.format(
@@ -1595,6 +1595,24 @@ if __name__ == '__main__':
                                                                           for mac in macs]
                                                                      )
                                                                  ))
+                                                        # Remove other VLAN LDAP group
+                                                        for vgkey, vgvalue in cfg['VMAM']['vlan_group_id'].items():
+                                                            # Check if VLAN-ID isn't equal
+                                                            if vgkey != vid:
+                                                                g = query_ldap(bind_start, cfg['LDAP']['user_base_dn'],
+                                                                               ['member', 'distinguishedname'],
+                                                                               objectclass='group', name=vgvalue)
+                                                                gdn = g[0]['dn']
+                                                                gmember = g[0]['attributes']['member']
+                                                                # Remove member of group
+                                                                if cdn in gmember:
+                                                                    remove_to_group(bind_start, gdn, cdn)
+                                                                    print(
+                                                                        'Remove VLAN group {0} to computer {1}'.format(
+                                                                            gdn, cdn))
+                                                                    wt.info(
+                                                                        'Remove VLAN group {0} to computer {1}'.format(
+                                                                            gdn, cdn))
                                                     else:
                                                         debugger(arguments.verbose, wt,
                                                                  'No "computer" in configuration file: '
