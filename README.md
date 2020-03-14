@@ -3,7 +3,7 @@
 <img src="https://raw.githubusercontent.com/MatteoGuadrini/vmam/master/img/vmam.png" alt="vmam" title="vmam" width="210" height="210" />
 <br>
 
-`vmam` is a command line tool which allows the management and maintenance of the mac-addresses 
+`vmam` is a Free and Open Source network access control (NAC) solution. 
 that access the network under a specific domain and a specific VLAN, through LDAP authentication and RADIUS server.
 This is based on [RFC 3579](https://tools.ietf.org/html/rfc3579#section-2.1).
 
@@ -16,7 +16,7 @@ This is based on [RFC 3579](https://tools.ietf.org/html/rfc3579#section-2.1).
 
 ## What's vmam?
 
-**vmam** is a command line tool, which manages, manually or automatically, 
+**vmam** is a Free and Open Source command line tool written in python, which manages, manually or automatically, 
 access to the network based on the configurations of its network equipment through LDAP server (Active Directory, FreeIPA, etc.) and 
 RADIUS server (Microsoft Radius or Free Radius) see [IEEE 802.1X](https://en.wikipedia.org/wiki/IEEE_802.1X), 
 based on [RFC 3580](https://tools.ietf.org/html/rfc3580), [RFC 4014](https://tools.ietf.org/html/rfc4014),
@@ -24,9 +24,10 @@ based on [RFC 3580](https://tools.ietf.org/html/rfc3580), [RFC 4014](https://too
 
 ### vmam architecture
 
-_vmam_ is a server-side application. Work with an open-source directory server or Active Directory through LDAP protocol. 
-Basically it creates mac address users that represent the network card of a machine and associates these users with LDAP groups 
-that represent the various VLANs specified created on their own network architecture (wi-fi, switches, routers, firewalls, etc.).
+_vmam_ is a server-side application. Work with an open source LDAP server or Active Directory. 
+Basically it creates mac-address users that represent the network card of a machine and associates these users with LDAP groups 
+that represent the various VLANs specified created on their own network architecture (wi-fi, switches, routers, firewalls, etc.), 
+centralized wired and wireless management, with 802.1X support.
 In addition, based on its configuration, it can also associate computer accounts with this group to allow access to the network 
 by spending the credentials of the computer account.
 

@@ -188,7 +188,7 @@ def check_module(module):
 # endregion
 
 # region Global variable
-VERSION = '1.1.0'
+VERSION = '1.1.2'
 __all__ = ['logwriter', 'debugger', 'confirm', 'read_config', 'get_platform', 'new_config', 'bind_ldap',
            'check_connection', 'check_config', 'connect_ldap', 'unbind_ldap', 'query_ldap', 'check_ldap_version',
            'new_user', 'set_user', 'delete_user', 'set_user_password', 'add_to_group', 'remove_to_group',
@@ -199,7 +199,7 @@ bind_start = False
 
 # endregion
 
-# region Functions
+    # region Functions
 
 
 def printv(*messages):
@@ -381,6 +381,7 @@ def new_config(path=(get_platform()['conf_default'])):
             'soft_deletion': 'true|false',
             'filter_exclude': ['list1', 'list2'],
             'log': get_platform()['log_default'],
+            'automatic_process_wait': 3,
             'remove_process': True,
             'user_match_id': {
                 'value1': 100,
@@ -456,6 +457,8 @@ def check_config(path):
     assert ('mac_format' in config['VMAM'] and config['VMAM']['mac_format']), 'Required VMAM:mac_format: field!'
     assert ('soft_deletion' in config['VMAM'] and
             config['VMAM']['soft_deletion']), 'Required VMAM:soft_deletion: field!'
+    assert ('automatic_process_wait' in config['VMAM'] and
+            isinstance(config['VMAM']['automatic_process_wait'], int)), 'Required VMAM:automatic_process_wait: field!'
     assert ('user_match_id' in config['VMAM'] and
             len(config['VMAM']['user_match_id'].keys()) > 0), 'Required VMAM:user_match_id: field!'
     assert ('vlan_group_id' in config['VMAM'] and
@@ -589,35 +592,29 @@ def query_ldap(bind_object, base_search, attributes, comp='=', **filters):
         return bind_object.response
 
 
-def check_ldap_version(bind_object, base_search):
+def check_ldap_version(bind_object):
     """
     Determines the LDAP version
 
     :param bind_object: LDAP bind object
-    :param base_search: distinguishedName of LDAP base search
-    :return: LDAP version
+    :return: LDAP version code: MS-LDAP or N-LDAP or LDAP
 
     .. testcode::
 
         >>> conn = connect_ldap(['dc1.foo.bar'])
         >>> bind = bind_ldap(conn, r'domain\\user', 'password', tls=True)
-        >>> ret = check_ldap_version(bind, 'dc=foo,dc=bar')
+        >>> ret = check_ldap_version(bind)
         >>> print(ret)
     """
-    # Query!
-    try:
-        # MS-LDAP query
-        query = '(&(&(&(&(samAccountType=805306369)(primaryGroupId=516))(objectCategory=computer)(operatingSystem=*))))'
-        bind_object.search(search_base=base_search, search_filter=query, search_scope=ldap3.SUBTREE)
+    # Microsoft LDAP
+    if 'MICROSOFT' in bind_object.server.info.supported_controls[0]:
         return 'MS-LDAP'
-    except ldap3.core.exceptions.LDAPObjectClassError:
-        try:
-            # Novell-LDAP query
-            query = '(objectClass=ncpServer)'
-            bind_object.search(search_base=base_search, search_filter=query, search_scope=ldap3.SUBTREE)
-            return 'N-LDAP'
-        except ldap3.core.exceptions.LDAPObjectClassError:
-            return 'LDAP'
+    # Novell LDAP
+    elif 'eDirectory' in bind_object.server.info.vendor_version:
+        return 'N-LDAP'
+    # Standard LDAP
+    else:
+        return 'LDAP'
 
 
 def new_user(bind_object, username, **attributes):
@@ -1142,7 +1139,7 @@ if __name__ == '__main__':
             mac, ','.join(config['LDAP']['servers']), vgroup))
         debugger(arguments.verbose, logger, 'Add mac-address {0} on LDAP servers {1} in {2} VLAN group'.format(
             mac, ','.join(config['LDAP']['servers']), vgroup))
-        ldap_v = check_ldap_version(bind, config['LDAP']['user_base_dn'])
+        ldap_v = check_ldap_version(bind)
         ids = 'cn' if ldap_v == 'MS-LDAP' else 'uid'
         dn = '{0}={1},{2}'.format(ids, mac, config['LDAP']['mac_user_base_dn'])
         # Query: check if mac-address exist
@@ -1296,7 +1293,7 @@ if __name__ == '__main__':
         print('Disable mac-address {0} on LDAP servers {1}'.format(mac, ','.join(config['LDAP']['servers'])))
         debugger(arguments.verbose, logger, 'Disable mac-address {0} on LDAP servers {1}'.format(
             mac, ','.join(config['LDAP']['servers'])))
-        ldap_v = check_ldap_version(bind, config['LDAP']['user_base_dn'])
+        ldap_v = check_ldap_version(bind)
         ids = 'cn' if ldap_v == 'MS-LDAP' else 'uid'
         dn = '{0}={1},{2}'.format(ids, mac, config['LDAP']['mac_user_base_dn'])
         # Query: check if mac-address exist
@@ -1337,7 +1334,7 @@ if __name__ == '__main__':
         print('Delete mac-address {0} on LDAP servers {1}'.format(mac, ','.join(config['LDAP']['servers'])))
         debugger(arguments.verbose, logger, 'Delete mac-address {0} on LDAP servers {1}'.format(
             mac, ','.join(config['LDAP']['servers'])))
-        ldap_v = check_ldap_version(bind, config['LDAP']['user_base_dn'])
+        ldap_v = check_ldap_version(bind)
         ids = 'cn' if ldap_v == 'MS-LDAP' else 'uid'
         dn = '{0}={1},{2}'.format(ids, mac, config['LDAP']['mac_user_base_dn'])
         # Query: check if mac-address exist
@@ -1503,12 +1500,11 @@ if __name__ == '__main__':
         debugger(arguments.verbose, wt, 'Connect to LDAP servers {0}'.format(','.join(cfg['LDAP']['servers'])))
         srv = connect_ldap(cfg['LDAP']['servers'], ssl=cfg['LDAP']['ssl'])
         # Bind LDAP server
-        debugger(arguments.verbose, wt, 'Bind on LDAP servers {0} with user {1}'.format(
-            ','.join(cfg['LDAP']['servers']), cfg['LDAP']['bind_user']))
         if bind_start:
             debugger(arguments.verbose, wt, 'The binding has already been defined. Bind:{0}'.format(bind_start.bound))
         else:
-            debugger(arguments.verbose, wt, 'Bind!')
+            debugger(arguments.verbose, wt, 'Bind on LDAP servers {0} with user {1}'.format(
+                ','.join(cfg['LDAP']['servers']), cfg['LDAP']['bind_user']))
             bind_start = bind_ldap(srv, cfg['LDAP']['bind_user'], cfg['LDAP']['bind_pwd'], tls=cfg['LDAP']['tls'])
         # Get computers from domain controllers
         debugger(arguments.verbose, wt, 'Convert datetime format to filetime format for computer query')
@@ -1583,9 +1579,9 @@ if __name__ == '__main__':
                                                         # Add VLAN LDAP group to computer account
                                                         if cdn not in g[0]['attributes']['member']:
                                                             add_to_group(bind_start, gdn, cdn)
-                                                            print('Add VLAN group {0} to user {1}'.format(gdn, cdn))
+                                                            print('Add VLAN group {0} to computer {1}'.format(gdn, cdn))
                                                             wt.info(
-                                                                'Add VLAN group {0} to user {1}'.format(gdn, cdn))
+                                                                'Add VLAN group {0} to computer {1}'.format(gdn, cdn))
                                                         else:
                                                             debugger(arguments.verbose, wt,
                                                                      'VLAN group {0} already added to user {1}'.format(
@@ -1599,6 +1595,24 @@ if __name__ == '__main__':
                                                                           for mac in macs]
                                                                      )
                                                                  ))
+                                                        # Remove other VLAN LDAP group
+                                                        for vgkey, vgvalue in cfg['VMAM']['vlan_group_id'].items():
+                                                            # Check if VLAN-ID isn't equal
+                                                            if vgkey != vid:
+                                                                g = query_ldap(bind_start, cfg['LDAP']['user_base_dn'],
+                                                                               ['member', 'distinguishedname'],
+                                                                               objectclass='group', name=vgvalue)
+                                                                gdn = g[0]['dn']
+                                                                gmember = g[0]['attributes']['member']
+                                                                # Remove member of group
+                                                                if cdn in gmember:
+                                                                    remove_to_group(bind_start, gdn, cdn)
+                                                                    print(
+                                                                        'Remove VLAN group {0} to computer {1}'.format(
+                                                                            gdn, cdn))
+                                                                    wt.info(
+                                                                        'Remove VLAN group {0} to computer {1}'.format(
+                                                                            gdn, cdn))
                                                     else:
                                                         debugger(arguments.verbose, wt,
                                                                  'No "computer" in configuration file: '
@@ -1645,11 +1659,12 @@ if __name__ == '__main__':
                             cli_delete_mac(cfg, bind_start, mac.get('attributes').get('samaccountname'), wt, arguments)
 
 
-    def cli_daemon(func, *args):
+    def cli_daemon(func, wait=1, *args):
         """
         Run vmam as a daemon
 
         :param func: function passed
+        :param wait: wait seconds of the infinite loop
         :param args: arguments passed to function
         :return: None
         """
@@ -1657,7 +1672,7 @@ if __name__ == '__main__':
             # Run endlessly
             while True:
                 func(*args)
-                time.sleep(3)
+                time.sleep(wait)
 
 
     def main():
@@ -1680,7 +1695,9 @@ if __name__ == '__main__':
         # Deamon?
         if 'daemon' in args and args.daemon:
             print('Start vmam daemon...')
-            cli_daemon(cli, args)
+            # Read the configuration file
+            cfg = read_config(args.conf)
+            cli_daemon(cli, cfg.get('VMAM').get('automatic_process_wait'), args)
         else:
             cli(args)
 
