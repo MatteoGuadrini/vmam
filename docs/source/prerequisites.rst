@@ -5,6 +5,17 @@ Prerequisites
    :maxdepth: 2
    :caption: Contents:
 
+How LDAP RADIUS MAC Authentication Works
+****************************************
+
+#. MAC authentication is initiated based on the security settings configured for the switch or WiFi.
+#. Authenticates the MAC address of the connecting client with a RADIUS server which in turn authenticates itself with a configured LDAP server.
+#. If the MAC authentication is successful, the client device is allowed to access the VLAN.
+#. If the MAC authentication fails, you can configure the switch or WiFi to take one of these actions:
+
+   * Connect the client even though it not authorized. You can optionally assign a role to the client from your defined role profiles. This role can assign the client to a specific VLAN ID or have other restrictions based on the role configuration. You can also redirect the user to web site or portal that provides information about why access was denied or displays instructions for self-registration.
+   * Disconnect the client device because it is not authorized.
+
 vmam Server
 ***********
 
