@@ -25,7 +25,7 @@ Python
 ======
 
 *vmam* is written in python3 (3.3 and higher).
-It also uses three third-party python libraries, necessary for the correct functioning of the tool:
+It also uses four third-party python libraries, necessary for the correct functioning of the tool:
 
 - `pywinrm <https://github.com/diyan/pywinrm>`_
 - `ldap3 <https://github.com/cannatag/ldap3>`_
@@ -84,18 +84,19 @@ This is an example of an LDAP group creation that represents a VLAN-ID on FreeIP
 
 .. code-block:: console
 
-    $> ipa group-add vlan_100 --desc="VLAN corrisponding to VLAN 100" --nonposix
+    $> ipa group-add vlan_100 --desc="VLAN group corrisponding to VLAN 100" --nonposix
 
     ----------------------
     Added group "vlan_100"
     ----------------------
       Group name: vlan_100
-      Description: VLAN corrisponding to VLAN 100
+      Description: VLAN group corrisponding to VLAN 100
       GID: 855800010
 
 .. note::
 
-    To configure Microsoft Radius, see the following `link <https://docs.microsoft.com/en-us/windows-server/networking/technologies/nps/nps-top>`_.
+    To create LDAP groups on other LDAP servers, search for the documentation in your LDAP server.
+    For Active Directory follow the link `here <https://docs.microsoft.com/en-us/windows/security/threat-protection/windows-firewall/create-a-group-account-in-active-directory>`_.
 
 Radius Server
 *************
@@ -196,9 +197,46 @@ To configure your network devices, you need to follow and search the manuals for
 3. Enable MAC authentication.
 4. Configure the post-authentication domain.
 
+This is an example on Huawei Switch:
+
+.. code-block:: console
+
+    $> # 1.
+    $>vlan 100 # users VLAN
+    $>vlan 200 # guest VLAN
+    $> # 2.
+    $>aaa
+    $>authentication-scheme Test
+    $>authentication-mode radius
+    $>authorization-scheme Test
+    $>authorization-mode if-authenticated
+    $>accounting-scheme default
+    $>service-scheme Guest
+    $>user-vlan 200
+    $>domain test
+    $>authentication-scheme Test
+    $>authorization-scheme Test
+    $>radius-server Test
+    $>radius-server template Test
+    $>radius-server shared-key cipher xxxxxxxxxxxxxxxxxxx
+    $>radius-server authentication 192.168.42.1 1812 weight 81 # radius server
+    $> # 3.
+    $>authentication-profile name mac_authen_profile
+    $>mac-access-profile mac_access_profile
+    $>authentication timer handshake-period 120
+    $>authentication mode single-voice-with-data
+    $>authentication event authen-fail action authorize service-scheme Guest
+    $>authentication device-type voice authorize
+    $> # 4.
+    $>mac-access-profile name mac_access_profile
+    $>mac-authen reauthenticate
+    $>authentication trigger-condition dhcp arp
+
+
 Installation
 ############
 
+Now that we have configured everything correctly, we can proceed with the installation of *vmam*.
 The installation of *vmam* is very simple. With *pip*:
 
 .. code-block:: console
