@@ -84,6 +84,73 @@ Radius Server
 To accept the authentication of the various mac-addresses and *"release"* a VLAN, a `Radius Server <https://en.wikipedia.org/wiki/RADIUS>`_ is required.
 If you have an Active Directory server, it is better to install `NPS <https://en.wikipedia.org/wiki/Network_Policy_Server>`_.
 Otherwise you can choose to install `Free Radius <https://en.wikipedia.org/wiki/FreeRADIUS>`_.
+Below is an example of a Radius configuration with LDAP authentication.
+
+Radius Configuration
+====================
+
+Radius has its own database of users, anyway, since this information is already contained in LDAP, it will be more convenient to use it!
+Once you have installed the server you have to configure it using the configuration files, that are located under ``/etc/raddb``
+In the ``radiusd.conf`` file edit :
+
+.. code-block:: cfg
+
+    [...omissis]
+    # Uncomment this if you want to use ldap (Auth-Type = LDAP)
+    # Also uncomment it in the authenticate{} block below
+            ldap {
+                    server   = ldap.yourorg.com
+                    #login    = "cn=admin,o=My Org,c=US"
+                    #password = mypass
+                    basedn   = "ou=users,dc=yourorg,dc=com"
+                    filter   = "(posixAccount)(uid=%u))"
+            }
+
+    [...omissis]
+
+    # Authentication types, Auth-Type = System and PAM for now.
+    authenticate {
+            pam
+            unix
+    #       sql
+    #       sql2
+    # Uncomment this if you want to use ldap (Auth-Type = LDAP)
+            ldap
+    }
+    [...omissis]
+
+Also edit the ``dictionary`` file:
+
+.. code-block:: cfg
+
+    [...omissis]
+    #
+    #       Non-Protocol Integer Translations
+    #
+
+    VALUE           Auth-Type               Local                   0
+    VALUE           Auth-Type               System                  1
+    VALUE           Auth-Type               SecurID                 2
+    VALUE           Auth-Type               Crypt-Local             3
+    VALUE           Auth-Type               Reject                  4
+    VALUE           Auth-Type               ActivCard               4
+    VALUE           Auth-Type               LDAP                    5
+    [...omissis]
+
+And the ``users`` file to have a default authorization entry:
+
+.. code-block:: cfg
+
+    [...omissis]
+    DEFAULT         Auth-Type := LDAP
+                    Fall-Through = 1
+    [...omissis]
+
+On the LDAP server ensure also that the radius server can read the all the posixAccount attributes (expecially ``uid`` and ``userpassword``).
+
+.. note::
+
+    To configure Microsoft Radius, see the following `link <https://docs.microsoft.com/en-us/windows-server/networking/technologies/nps/nps-top>`_.
 
 Radius Policy
 =============
