@@ -77,6 +77,25 @@ LDAP Organizational Unit
 In the *vmam* configuration file, you will find three LDAP object search bases.
 Nobody forbids all three to coincide, but it's best to keep them separate in different OUs for proper functionality.
 
+LDAP Group Configuration
+------------------------
+
+This is an example of an LDAP group creation that represents a VLAN-ID on FreeIPA server:
+
+.. code-block:: console
+
+    $> ipa group-add vlan_100 --desc="VLAN corrisponding to VLAN 100" --nonposix
+
+    ----------------------
+    Added group "vlan_100"
+    ----------------------
+      Group name: vlan_100
+      Description: VLAN corrisponding to VLAN 100
+      GID: 855800010
+
+.. note::
+
+    To configure Microsoft Radius, see the following `link <https://docs.microsoft.com/en-us/windows-server/networking/technologies/nps/nps-top>`_.
 
 Radius Server
 *************
