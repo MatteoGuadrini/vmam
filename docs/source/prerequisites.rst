@@ -5,6 +5,17 @@ Prerequisites
    :maxdepth: 2
    :caption: Contents:
 
+How LDAP RADIUS MAC Authentication Works
+****************************************
+
+#. MAC authentication is initiated based on the security settings configured for the switch or WiFi.
+#. Authenticates the MAC address of the connecting client with a RADIUS server which in turn authenticates itself with a configured LDAP server.
+#. If the MAC authentication is successful, the client device is allowed to access the VLAN.
+#. If the MAC authentication fails, you can configure the switch or WiFi to take one of these actions:
+
+   * Connect the client even though it not authorized. You can optionally assign a role to the client from your defined role profiles. This role can assign the client to a specific VLAN ID or have other restrictions based on the role configuration. You can also redirect the user to web site or portal that provides information about why access was denied or displays instructions for self-registration.
+   * Disconnect the client device because it is not authorized.
+
 vmam Server
 ***********
 
@@ -14,7 +25,7 @@ Python
 ======
 
 *vmam* is written in python3 (3.3 and higher).
-It also uses three third-party python libraries, necessary for the correct functioning of the tool:
+It also uses four third-party python libraries, necessary for the correct functioning of the tool:
 
 - `pywinrm <https://github.com/diyan/pywinrm>`_
 - `ldap3 <https://github.com/cannatag/ldap3>`_
@@ -66,6 +77,26 @@ LDAP Organizational Unit
 In the *vmam* configuration file, you will find three LDAP object search bases.
 Nobody forbids all three to coincide, but it's best to keep them separate in different OUs for proper functionality.
 
+LDAP Group Configuration
+------------------------
+
+This is an example of an LDAP group creation that represents a VLAN-ID on FreeIPA server:
+
+.. code-block:: console
+
+    $> ipa group-add vlan_100 --desc="VLAN group corrisponding to VLAN 100" --nonposix
+
+    ----------------------
+    Added group "vlan_100"
+    ----------------------
+      Group name: vlan_100
+      Description: VLAN group corrisponding to VLAN 100
+      GID: 855800010
+
+.. note::
+
+    To create LDAP groups on other LDAP servers, search for the documentation in your LDAP server.
+    For Active Directory follow the link `here <https://docs.microsoft.com/en-us/windows/security/threat-protection/windows-firewall/create-a-group-account-in-active-directory>`_.
 
 Radius Server
 *************
@@ -73,6 +104,73 @@ Radius Server
 To accept the authentication of the various mac-addresses and *"release"* a VLAN, a `Radius Server <https://en.wikipedia.org/wiki/RADIUS>`_ is required.
 If you have an Active Directory server, it is better to install `NPS <https://en.wikipedia.org/wiki/Network_Policy_Server>`_.
 Otherwise you can choose to install `Free Radius <https://en.wikipedia.org/wiki/FreeRADIUS>`_.
+Below is an example of a Radius configuration with LDAP authentication.
+
+Radius Configuration
+====================
+
+Radius has its own database of users, anyway, since this information is already contained in LDAP, it will be more convenient to use it!
+Once you have installed the server you have to configure it using the configuration files, that are located under ``/etc/raddb``
+In the ``radiusd.conf`` file edit :
+
+.. code-block:: cfg
+
+    [...omissis]
+    # Uncomment this if you want to use ldap (Auth-Type = LDAP)
+    # Also uncomment it in the authenticate{} block below
+            ldap {
+                    server   = ldap.yourorg.com
+                    #login    = "cn=admin,o=My Org,c=US"
+                    #password = mypass
+                    basedn   = "ou=users,dc=yourorg,dc=com"
+                    filter   = "(posixAccount)(uid=%u))"
+            }
+
+    [...omissis]
+
+    # Authentication types, Auth-Type = System and PAM for now.
+    authenticate {
+            pam
+            unix
+    #       sql
+    #       sql2
+    # Uncomment this if you want to use ldap (Auth-Type = LDAP)
+            ldap
+    }
+    [...omissis]
+
+Also edit the ``dictionary`` file:
+
+.. code-block:: cfg
+
+    [...omissis]
+    #
+    #       Non-Protocol Integer Translations
+    #
+
+    VALUE           Auth-Type               Local                   0
+    VALUE           Auth-Type               System                  1
+    VALUE           Auth-Type               SecurID                 2
+    VALUE           Auth-Type               Crypt-Local             3
+    VALUE           Auth-Type               Reject                  4
+    VALUE           Auth-Type               ActivCard               4
+    VALUE           Auth-Type               LDAP                    5
+    [...omissis]
+
+And the ``users`` file to have a default authorization entry:
+
+.. code-block:: cfg
+
+    [...omissis]
+    DEFAULT         Auth-Type := LDAP
+                    Fall-Through = 1
+    [...omissis]
+
+On the LDAP server ensure also that the radius server can read the all the posixAccount attributes (expecially ``uid`` and ``userpassword``).
+
+.. note::
+
+    To configure Microsoft Radius, see the following `link <https://docs.microsoft.com/en-us/windows-server/networking/technologies/nps/nps-top>`_.
 
 Radius Policy
 =============
@@ -99,9 +197,46 @@ To configure your network devices, you need to follow and search the manuals for
 3. Enable MAC authentication.
 4. Configure the post-authentication domain.
 
+This is an example on Huawei Switch:
+
+.. code-block:: console
+
+    $> # 1.
+    $>vlan 100 # users VLAN
+    $>vlan 200 # guest VLAN
+    $> # 2.
+    $>aaa
+    $>authentication-scheme Test
+    $>authentication-mode radius
+    $>authorization-scheme Test
+    $>authorization-mode if-authenticated
+    $>accounting-scheme default
+    $>service-scheme Guest
+    $>user-vlan 200
+    $>domain test
+    $>authentication-scheme Test
+    $>authorization-scheme Test
+    $>radius-server Test
+    $>radius-server template Test
+    $>radius-server shared-key cipher xxxxxxxxxxxxxxxxxxx
+    $>radius-server authentication 192.168.42.1 1812 weight 81 # radius server
+    $> # 3.
+    $>authentication-profile name mac_authen_profile
+    $>mac-access-profile mac_access_profile
+    $>authentication timer handshake-period 120
+    $>authentication mode single-voice-with-data
+    $>authentication event authen-fail action authorize service-scheme Guest
+    $>authentication device-type voice authorize
+    $> # 4.
+    $>mac-access-profile name mac_access_profile
+    $>mac-authen reauthenticate
+    $>authentication trigger-condition dhcp arp
+
+
 Installation
 ############
 
+Now that we have configured everything correctly, we can proceed with the installation of *vmam*.
 The installation of *vmam* is very simple. With *pip*:
 
 .. code-block:: console
