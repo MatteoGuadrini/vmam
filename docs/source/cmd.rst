@@ -163,8 +163,6 @@ Let's create this file ``/etc/systemd/system/vmamd.service`` with this content:
     Environment=PYTHONUNBUFFERED=1
     # Automatically restart the service if it crashes
     Restart=on-failure
-    # Our service will notify systemd once it is up and running
-    Type=notify
 
     [Install]
     # Tell systemd to automatically start this service when the system boots
