@@ -958,19 +958,20 @@ def get_mac_address(protocol, *exclude):
     # Skip the first line of output
     mac_list = macs[0].splitlines()[1:]
     # Process all mac-addresses
-    ret = list()
-    for mac in mac_list:
-        mac = mac.decode('ascii')
-        # Check exclusion
-        for exc in exclude:
-            exclusion = True if exc in mac else False
-            if exclusion:
-                break
-        else:
-            ret.append(mac)
-    ret = [r.split(',')[2].strip('"') for r in ret]
-    # Return list of mac-address
-    return ret
+    if mac_list:
+        ret = list()
+        for mac in mac_list:
+            mac = mac.decode('ascii')
+            # Check exclusion
+            for exc in exclude:
+                exclusion = True if exc in mac else False
+                if exclusion:
+                    break
+            else:
+                ret.append(mac)
+        ret = [r.split(',')[2].strip('"') for r in ret]
+        # Return list of mac-address
+        return ret
 
 
 def get_client_user(protocol):
@@ -990,13 +991,14 @@ def get_client_user(protocol):
     users = list(run_command(protocol, 'quser'))
     # Skip the first line of output
     user_list = users[0].splitlines()[1:]
-    # Process all users
-    ret = list()
-    for user in user_list:
-        user = user.decode('ascii').strip()
-        ret.append(user.split())
-    # Get last user: 0:USERNAME, 1:SESSIONNAME, 2:ID, 3:STATE, 4:IDLE TIME, 5:LOGON DATE, 6:LOGON TIME
-    return ret
+    if user_list:
+        # Process all users
+        ret = list()
+        for user in user_list:
+            user = user.decode('ascii').strip()
+            ret.append(user.split())
+        # Get last user: 0:USERNAME, 1:SESSIONNAME, 2:ID, 3:STATE, 4:IDLE TIME, 5:LOGON DATE, 6:LOGON TIME
+        return ret
 
 
 def check_vlan_attributes(value, method='like', *attributes):
@@ -1455,7 +1457,7 @@ if __name__ == '__main__':
         cfg = read_config(arguments.conf)
         # Create log writer
         wt = logwriter(cfg['VMAM']['log'])
-        debugger(arguments.verbose, wt, 'Start in manual mode.')
+        debugger(arguments.verbose, wt, 'Start in manual mode')
         # Check mandatory entry on configuration file
         debugger(arguments.verbose, wt, 'Check mandatory fields on configuration file {0}'.format(arguments.conf))
         check_config(arguments.conf)
@@ -1492,7 +1494,7 @@ if __name__ == '__main__':
         cfg = read_config(arguments.conf)
         # Create log writer
         wt = logwriter(cfg['VMAM']['log'])
-        debugger(arguments.verbose, wt, 'Start in automatic mode.')
+        debugger(arguments.verbose, wt, 'Start in automatic mode')
         # Check mandatory entry on configuration file
         debugger(arguments.verbose, wt, 'Check mandatory fields on configuration file {0}'.format(arguments.conf))
         check_config(arguments.conf)
@@ -1501,7 +1503,8 @@ if __name__ == '__main__':
         srv = connect_ldap(cfg['LDAP']['servers'], ssl=cfg['LDAP']['ssl'])
         # Bind LDAP server
         if bind_start:
-            debugger(arguments.verbose, wt, 'The binding has already been defined. Bind:{0}'.format(bind_start.bound))
+            debugger(arguments.verbose, wt, 'The binding has already been defined. Bind:{0} User:{1}'.format(
+                bind_start.bound, cfg['LDAP']['bind_user']))
         else:
             debugger(arguments.verbose, wt, 'Bind on LDAP servers {0} with user {1}'.format(
                 ','.join(cfg['LDAP']['servers']), cfg['LDAP']['bind_user']))
@@ -1533,9 +1536,21 @@ if __name__ == '__main__':
                                 macs = get_mac_address(client, *cfg['VMAM']['filter_exclude'])
                             else:
                                 macs = get_mac_address(client)
+                            # Check mac list
+                            if not macs:
+                                print('WARNING: There are no mac-addresses present in {0} computer'.format(
+                                    c_attribute['name']))
+                                wt.warning('There are no mac-addresses present in {0} computer'.format(
+                                    c_attribute['name']))
+                                continue
                             # Get the last user of the computer
                             debugger(arguments.verbose, wt, 'Get users of {0}'.format(c_attribute['name']))
                             users = get_client_user(client)
+                            # Check user list
+                            if not users:
+                                print('WARNING: No user logged in on {0} computer'.format(c_attribute['name']))
+                                wt.warning('No user logged in on {0} computer'.format(c_attribute['name']))
+                                continue
                             # Search user on LDAP server
                             try:
                                 debugger(arguments.verbose, wt, 'Search user {0} on LDAP'.format(users[0][0]))
@@ -1584,7 +1599,8 @@ if __name__ == '__main__':
                                                                 'Add VLAN group {0} to computer {1}'.format(gdn, cdn))
                                                         else:
                                                             debugger(arguments.verbose, wt,
-                                                                     'VLAN group {0} already added to user {1}'.format(
+                                                                     'VLAN group {0} already added to '
+                                                                     'computer {1}'.format(
                                                                          cfg['VMAM']['vlan_group_id'][vid], cdn))
                                                         # Add description to computer account
                                                         set_user(bind_start, c_attribute.get('distinguishedname'),
