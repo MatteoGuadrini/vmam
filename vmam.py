@@ -412,6 +412,7 @@ def check_connection(ip, port):
     """
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
+        s.settimeout(3)
         s.connect((ip, port))
         s.shutdown(socket.SHUT_RDWR)
         return True
