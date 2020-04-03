@@ -1261,17 +1261,18 @@ if __name__ == '__main__':
             exit(18)
         # Set password
         try:
-            debugger(arguments.verbose, logger, 'Set password to user {0}'.format(dn))
-            set_user_password(bind, dn, mac, ldap_version=ldap_v)
-            if ldap_v == 'MS-LDAP':
-                # Enable user
-                try:
-                    debugger(arguments.verbose, logger, 'Enable user {0}'.format(dn))
-                    set_user(bind, dn, pwdlastset=-1, useraccountcontrol=66048)
-                except Exception as err:
-                    print('ERROR:', err)
-                    logger.error(err)
-                    exit(10)
+            if not exist:
+                debugger(arguments.verbose, logger, 'Set password to user {0}'.format(dn))
+                set_user_password(bind, dn, mac, ldap_version=ldap_v)
+                if ldap_v == 'MS-LDAP':
+                    # Enable user
+                    try:
+                        debugger(arguments.verbose, logger, 'Enable user {0}'.format(dn))
+                        set_user(bind, dn, pwdlastset=-1, useraccountcontrol=66048)
+                    except Exception as err:
+                        print('ERROR:', err)
+                        logger.error(err)
+                        exit(10)
         except Exception as err:
             print('ERROR:', err)
             logger.error(err)
