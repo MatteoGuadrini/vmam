@@ -357,6 +357,10 @@ def new_config(path=(get_platform()['conf_default'])):
 
         >>> new_config('/tmp/vmam.yml')
     """
+    # Folder exists?
+    leaf = os.path.split(path)
+    if not leaf[0]:
+        os.makedirs(leaf[0])
     conf = {
         'LDAP': {
             'servers': ['dc1', 'dc2'],
