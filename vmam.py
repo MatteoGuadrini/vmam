@@ -360,7 +360,11 @@ def new_config(path=(get_platform()['conf_default'])):
     # Folder exists?
     leaf = os.path.split(path)
     if not leaf[0]:
-        os.makedirs(leaf[0])
+        try:
+            os.makedirs(leaf[0])
+        except Exception as err:
+            print('ERROR: {0}'.format(err))
+            exit(2)
     conf = {
         'LDAP': {
             'servers': ['dc1', 'dc2'],
