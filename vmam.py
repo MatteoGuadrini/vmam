@@ -230,13 +230,25 @@ def logwriter(logfile):
     """
     # Create logging object
     _format = logging.Formatter('%(asctime)s %(levelname)-4s %(message)s')
-    handler = logging.FileHandler(logfile)
-    handler.setFormatter(_format)
-    logger = logging.getLogger(os.path.basename(__file__))
-    logger.setLevel(logging.DEBUG)
-    if not len(logger.handlers):
-        logger.addHandler(handler)
-    return logger
+    # Folder exists?
+    leaf = os.path.split(logfile)
+    if not leaf[0]:
+        try:
+            os.makedirs(leaf[0])
+        except Exception as err:
+            print('ERROR: {0}'.format(err))
+            exit(2)
+    try:
+        handler = logging.FileHandler(logfile)
+        handler.setFormatter(_format)
+        logger = logging.getLogger(os.path.basename(__file__))
+        logger.setLevel(logging.DEBUG)
+        if not len(logger.handlers):
+            logger.addHandler(handler)
+        return logger
+    except Exception as err:
+        print('ERROR: {0}'.format(err))
+        exit(2)
 
 
 def debugger(verbose, writer, message):
