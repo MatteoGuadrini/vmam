@@ -1111,6 +1111,8 @@ if __name__ == '__main__':
         group_mac.add_argument('--force', '-f', help='force action', dest='force', action='store_true')
         group_mac.add_argument('--vlan-id', '-i', help='vlan-id number', dest='vlanid', action='store',
                                nargs=1, metavar='VLAN_ID', type=int, required=('--add' in sys.argv or '-a' in sys.argv))
+        group_mac.add_argument('--description', '-D', help='description field', dest='description', action='store',
+                               metavar='description')
         # Return parser object
         return parser_object
 
@@ -1494,7 +1496,8 @@ if __name__ == '__main__':
         # Check actions
         if arguments.add:
             vlanid = arguments.vlanid[0]
-            cli_new_mac(cfg, bind, ''.join(arguments.add), vlanid, wt, arguments, description=''.join(arguments.add))
+            desc = arguments.description if arguments.description else ''.join(arguments.add)
+            cli_new_mac(cfg, bind, ''.join(arguments.add), vlanid, wt, arguments, description=desc)
         elif arguments.disable:
             cli_disable_mac(cfg, bind, ''.join(arguments.disable), wt, arguments)
         elif arguments.remove:
