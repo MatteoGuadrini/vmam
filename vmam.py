@@ -418,12 +418,13 @@ def new_config(path=(get_platform()['conf_default'])):
     write_config(conf, path)
 
 
-def check_connection(ip, port):
+def check_connection(ip, port, timeout=3):
     """
     Test connection of remote (ip) machine on (port)
 
     :param ip: ip address or hostname of machine
     :param port: tcp port
+    :param timeout: set timeout of connection
     :return: Boolean
 
     .. testcode::
@@ -432,7 +433,7 @@ def check_connection(ip, port):
     """
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
-        s.settimeout(3)
+        s.settimeout(timeout)
         s.connect((ip, port))
         s.shutdown(socket.SHUT_RDWR)
         return True
