@@ -65,9 +65,14 @@ Usage for command line:
 
         mac {action}: Manual action for adding, modifying, deleting and disabling of the mac-address users
 
-            --add/-a {parameter}: Add a specific mac-address on LDAP with specific VLAN. See also --vlan-id/-v
+            --add/-a {parameter}: Add a specific mac-address on LDAP with specific VLAN. See also --vlan-id/-i
 
             $> vmam mac --add 000018ff12dd --vlan-id 110
+            Add new mac-address user with VLAN 110, based on standard configuration file: /etc/vmam/vmam.cfg
+
+            --description/-D {parameter}: Add description on created mac-address
+
+            $> vmam mac --add 000018ff12dd --vlan-id 110 --description "My personal linux"
             Add new mac-address user with VLAN 110, based on standard configuration file: /etc/vmam/vmam.cfg
 
             --remove/-r {parameter}: Remove a mac-address user on LDAP
@@ -89,7 +94,7 @@ Usage for command line:
             Modify new or existing mac-address user with VLAN 111, based on standard configuration
             file: /etc/vmam/vmam.cfg
 
-            --vlan-id/-v {parameter}: Specify a specific VLAN-id
+            --vlan-id/-i {parameter}: Specify a specific VLAN-id
 
             $> vmam mac --add 000018ff12dd --vlan-id 100
             Add new mac-address user with VLAN 100, based on standard configuration file: /etc/vmam/vmam.cfg
