@@ -35,9 +35,11 @@ The process of creating a mac-address user involves these steps:
 
 **Parameter**
 
-``--add/-a {parameter}``: Add a specific mac-address on LDAP with specific VLAN. See also --vlan-id/-v
+``--add/-a {parameter}``: Add a specific mac-address on LDAP with specific VLAN. See also --vlan-id/-i
 
-``--vlan-id/-v {parameter}``: Specify a specific VLAN-id
+``--vlan-id/-i {parameter}``: Specify a specific VLAN-id
+
+``--description/-D {parameter}``: Description field
 
 .. code-block:: console
 

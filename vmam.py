@@ -65,9 +65,14 @@ Usage for command line:
 
         mac {action}: Manual action for adding, modifying, deleting and disabling of the mac-address users
 
-            --add/-a {parameter}: Add a specific mac-address on LDAP with specific VLAN. See also --vlan-id/-v
+            --add/-a {parameter}: Add a specific mac-address on LDAP with specific VLAN. See also --vlan-id/-i
 
             $> vmam mac --add 000018ff12dd --vlan-id 110
+            Add new mac-address user with VLAN 110, based on standard configuration file: /etc/vmam/vmam.cfg
+
+            --description/-D {parameter}: Add description on created mac-address
+
+            $> vmam mac --add 000018ff12dd --vlan-id 110 --description "My personal linux"
             Add new mac-address user with VLAN 110, based on standard configuration file: /etc/vmam/vmam.cfg
 
             --remove/-r {parameter}: Remove a mac-address user on LDAP
@@ -89,7 +94,7 @@ Usage for command line:
             Modify new or existing mac-address user with VLAN 111, based on standard configuration
             file: /etc/vmam/vmam.cfg
 
-            --vlan-id/-v {parameter}: Specify a specific VLAN-id
+            --vlan-id/-i {parameter}: Specify a specific VLAN-id
 
             $> vmam mac --add 000018ff12dd --vlan-id 100
             Add new mac-address user with VLAN 100, based on standard configuration file: /etc/vmam/vmam.cfg
@@ -230,13 +235,25 @@ def logwriter(logfile):
     """
     # Create logging object
     _format = logging.Formatter('%(asctime)s %(levelname)-4s %(message)s')
-    handler = logging.FileHandler(logfile)
-    handler.setFormatter(_format)
-    logger = logging.getLogger(os.path.basename(__file__))
-    logger.setLevel(logging.DEBUG)
-    if not len(logger.handlers):
-        logger.addHandler(handler)
-    return logger
+    # Folder exists?
+    leaf = os.path.split(logfile)
+    if not leaf[0]:
+        try:
+            os.makedirs(leaf[0])
+        except Exception as err:
+            print('ERROR: {0}'.format(err))
+            exit(2)
+    try:
+        handler = logging.FileHandler(logfile)
+        handler.setFormatter(_format)
+        logger = logging.getLogger(os.path.basename(__file__))
+        logger.setLevel(logging.DEBUG)
+        if not len(logger.handlers):
+            logger.addHandler(handler)
+        return logger
+    except Exception as err:
+        print('ERROR: {0}'.format(err))
+        exit(2)
 
 
 def debugger(verbose, writer, message):
@@ -357,6 +374,14 @@ def new_config(path=(get_platform()['conf_default'])):
 
         >>> new_config('/tmp/vmam.yml')
     """
+    # Folder exists?
+    leaf = os.path.split(path)
+    if not leaf[0]:
+        try:
+            os.makedirs(leaf[0])
+        except Exception as err:
+            print('ERROR: {0}'.format(err))
+            exit(2)
     conf = {
         'LDAP': {
             'servers': ['dc1', 'dc2'],
@@ -398,12 +423,13 @@ def new_config(path=(get_platform()['conf_default'])):
     write_config(conf, path)
 
 
-def check_connection(ip, port):
+def check_connection(ip, port, timeout=3):
     """
     Test connection of remote (ip) machine on (port)
 
     :param ip: ip address or hostname of machine
     :param port: tcp port
+    :param timeout: set timeout of connection
     :return: Boolean
 
     .. testcode::
@@ -412,7 +438,7 @@ def check_connection(ip, port):
     """
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
-        s.settimeout(3)
+        s.settimeout(timeout)
         s.connect((ip, port))
         s.shutdown(socket.SHUT_RDWR)
         return True
@@ -1091,6 +1117,8 @@ if __name__ == '__main__':
         group_mac.add_argument('--force', '-f', help='force action', dest='force', action='store_true')
         group_mac.add_argument('--vlan-id', '-i', help='vlan-id number', dest='vlanid', action='store',
                                nargs=1, metavar='VLAN_ID', type=int, required=('--add' in sys.argv or '-a' in sys.argv))
+        group_mac.add_argument('--description', '-D', help='description field', dest='description', action='store',
+                               metavar='description')
         # Return parser object
         return parser_object
 
@@ -1474,7 +1502,8 @@ if __name__ == '__main__':
         # Check actions
         if arguments.add:
             vlanid = arguments.vlanid[0]
-            cli_new_mac(cfg, bind, ''.join(arguments.add), vlanid, wt, arguments, description=''.join(arguments.add))
+            desc = arguments.description if arguments.description else ''.join(arguments.add)
+            cli_new_mac(cfg, bind, ''.join(arguments.add), vlanid, wt, arguments, description=desc)
         elif arguments.disable:
             cli_disable_mac(cfg, bind, ''.join(arguments.disable), wt, arguments)
         elif arguments.remove:

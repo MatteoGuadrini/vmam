@@ -12,7 +12,7 @@ To generate an empty configuration file, type at the command line (or through it
 
 .. code-block:: console
 
-    vmam config --new <path-to-configuration>.yml
+    #> vmam config --new <path-to-configuration>.yml
 
 If you don't specify the file path, it will create a configuration file in a default path: ``/etc/vmam/vmam.yml``
 
