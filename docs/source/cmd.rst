@@ -43,7 +43,7 @@ The process of creating a mac-address user involves these steps:
 
 .. code-block:: console
 
-    $> vmam mac --add <mac-address> --vlan-id <vlan-id>
+    $> vmam mac --add <mac-address> --vlan-id <vlan-id> --description <description>
 
 
 Disabling
