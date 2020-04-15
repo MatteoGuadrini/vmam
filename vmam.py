@@ -1176,7 +1176,8 @@ if __name__ == '__main__':
         # Query: check if mac-address exist
         debugger(arguments.verbose, logger, 'Exist mac-address {0} on LDAP servers {1}?'.format(
             mac, ','.join(config['LDAP']['servers'])))
-        ret = query_ldap(bind, config['LDAP']['mac_user_base_dn'], ['samaccountname'], samaccountname=mac)
+        ret = query_ldap(bind, config['LDAP']['mac_user_base_dn'], ['samaccountname', 'description'],
+                         samaccountname=mac)
         if not ret:
             debugger(arguments.verbose, logger, 'Mac-address {0} not exists on LDAP servers {1}'.format(
                 mac, ','.join(config['LDAP']['servers'])))
@@ -1209,6 +1210,9 @@ if __name__ == '__main__':
                 ret[0].get('dn'), ','.join(config['LDAP']['servers'])))
             print('Mac address {0} already exists on LDAP servers {1}'.format(
                 ret[0].get('dn'), ','.join(config['LDAP']['servers'])))
+            # Modify description
+            if description not in ret[0]['attributes'].get('description'):
+                set_user(bind, dn, description=description)
             exist = True
         # Add VLAN and custom LDAP group
         # VLAN-ID group
