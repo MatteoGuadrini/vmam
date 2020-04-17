@@ -1694,7 +1694,7 @@ if __name__ == '__main__':
             # Get old mac-address user
             debugger(arguments.verbose, wt, 'Convert datetime format to filetime format for mac-address user query')
             # Get value for soft deletion
-            soft_deletion = cfg['LDAP']['mac_user_ttl']
+            soft_deletion = cfg['VMAM']['soft_deletion']
             td = get_time_sync(cfg['LDAP']['mac_user_ttl'])
             ft = datetime_to_filetime(td)
             write_attrib = cfg['LDAP']['write_attrib'] if cfg['LDAP']['write_attrib'] else 'employeetype'
