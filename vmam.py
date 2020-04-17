@@ -1178,7 +1178,7 @@ if __name__ == '__main__':
             mac, ','.join(config['LDAP']['servers'])))
         ret = query_ldap(bind, config['LDAP']['mac_user_base_dn'], ['samaccountname', 'description'],
                          samaccountname=mac)
-        if not ret:
+        if not ret[0].get('dn'):
             debugger(arguments.verbose, logger, 'Mac-address {0} not exists on LDAP servers {1}'.format(
                 mac, ','.join(config['LDAP']['servers'])))
             # Add mac-address to LDAP
@@ -1507,13 +1507,13 @@ if __name__ == '__main__':
         debugger(arguments.verbose, wt, 'Bind on LDAP servers {0} with user {1}'.format(
             ','.join(cfg['LDAP']['servers']), cfg['LDAP']['bind_user']))
         bind = bind_ldap(srv, cfg['LDAP']['bind_user'], cfg['LDAP']['bind_pwd'], tls=cfg['LDAP']['tls'])
+        desc = arguments.description if arguments.description else ''.join(arguments.add)
         # Check actions
         if arguments.add:
             vlanid = arguments.vlanid[0]
-            desc = arguments.description if arguments.description else ''.join(arguments.add)
             cli_new_mac(cfg, bind, ''.join(arguments.add), vlanid, wt, arguments, description=desc)
         elif arguments.disable:
-            cli_disable_mac(cfg, bind, ''.join(arguments.disable), wt, arguments)
+            cli_disable_mac(cfg, bind, ''.join(arguments.disable), wt, arguments, description=desc)
         elif arguments.remove:
             cli_delete_mac(cfg, bind, ''.join(arguments.remove), wt, arguments)
         # Unbind LDAP connection
@@ -1699,16 +1699,25 @@ if __name__ == '__main__':
             ft = datetime_to_filetime(td)
             write_attrib = cfg['LDAP']['write_attrib'] if cfg['LDAP']['write_attrib'] else 'employeetype'
             macaddresses = query_ldap(bind_start, cfg['LDAP']['mac_user_base_dn'],
-                                      ['name', write_attrib, 'samaccountname', 'distinguishedname', 'whencreated'],
-                                      comp='<=', objectcategory='user', lastlogontimestamp=ft)
-            if macaddresses:
+                                      ['name', write_attrib, 'samaccountname', 'distinguishedname', 'whencreated',
+                                       'description'], comp='<=', objectcategory='user', lastlogontimestamp=ft)
+            if macaddresses[0].get('dn'):
                 for mac in macaddresses:
                     # Check if mac-address user don't live in time-to-live period
                     wc = datetime_to_filetime(mac.get('attributes').get('whencreated'))
                     if ft > wc:
                         if soft_deletion:
+                            # Modify description
+                            last_access = filetime_to_datetime(mac.get('attributes').get('lastlogontimestamp'))
+                            desc = 'Disabled on {0}. Last access on {1}. Description: {2}'.format(
+                                str(datetime.date.today()), str(last_access.date()),
+                                mac.get('attributes').get('description')
+                            )
+                            # Set new description
+
                             # Disable mac-address
-                            cli_disable_mac(cfg, bind_start, mac.get('attributes').get('samaccountname'), wt, arguments)
+                            cli_disable_mac(cfg, bind_start, mac.get('attributes').get('samaccountname'), wt, arguments,
+                                            description=desc)
                         else:
                             # Remove mac-address
                             cli_delete_mac(cfg, bind_start, mac.get('attributes').get('samaccountname'), wt, arguments)
