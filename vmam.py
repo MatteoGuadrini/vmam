@@ -1314,7 +1314,7 @@ if __name__ == '__main__':
             logger.info('Mac-address user {0} successfully created'.format(mac))
 
 
-    def cli_disable_mac(config, bind, mac, logger, arguments):
+    def cli_disable_mac(config, bind, mac, logger, arguments, description=None):
         """
         Disable mac-address LDAP user
 
@@ -1323,6 +1323,7 @@ if __name__ == '__main__':
         :param mac: mac-address in any format
         :param logger: logging object
         :param arguments: parser object arguments
+        :param description: description string value for LDAP user
         :return: None
         """
         mac = mac_format(mac, config['VMAM']['mac_format'])
@@ -1344,6 +1345,9 @@ if __name__ == '__main__':
                         set_user(bind, dn, useraccountcontrol=514)
                     else:
                         set_user(bind, dn, nsaccountlock='True')
+                    # Modify description
+                    if description not in ret[0]['attributes'].get('description'):
+                        set_user(bind, dn, description=description)
                 except Exception as err:
                     print('ERROR:', err)
                     logger.error(err)
