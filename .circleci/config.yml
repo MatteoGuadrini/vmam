@@ -1,0 +1,21 @@
+version: 2.1
+
+orbs:
+  python: circleci/python@0.2.1
+
+jobs:
+  build-and-test:
+    executor: python/default
+    steps:
+      - checkout
+      - run: sudo python setup.py install
+      - run: sudo vmam -V
+      - run: sudo chmod -R 777 /tmp
+      - run: sudo vmam config --new /tmp/test.yml
+      - run: sudo cat /tmp/test.yml
+
+workflows:
+  main:
+    jobs:
+      - build-and-test
+

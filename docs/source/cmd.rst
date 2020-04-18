@@ -43,7 +43,7 @@ The process of creating a mac-address user involves these steps:
 
 .. code-block:: console
 
-    $> vmam mac --add <mac-address> --vlan-id <vlan-id>
+    $> vmam mac --add <mac-address> --vlan-id <vlan-id> --description <description>
 
 
 Disabling
@@ -57,9 +57,11 @@ The disabling process involves only one step; disabling the user.
 
 ``--force/-f {parameter}``: Force remove/disable action, without prompt confirmation (optional)
 
+``--description/-D {parameter}``: Description field
+
 .. code-block:: console
 
-    $> vmam mac --disable <mac-address>
+    $> vmam mac --disable <mac-address> --description <description>
 
 Deletion
 ========
