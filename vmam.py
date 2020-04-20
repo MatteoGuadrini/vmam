@@ -407,6 +407,7 @@ def new_config(path=(get_platform()['conf_default'])):
             'filter_exclude': ['list1', 'list2'],
             'log': get_platform()['log_default'],
             'automatic_process_wait': 3,
+            'black_list': '/etc/vmam/blacklist',
             'remove_process': True,
             'user_match_id': {
                 'value1': 100,
