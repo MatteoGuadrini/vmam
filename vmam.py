@@ -198,7 +198,8 @@ __all__ = ['logwriter', 'debugger', 'confirm', 'read_config', 'get_platform', 'n
            'check_connection', 'check_config', 'connect_ldap', 'unbind_ldap', 'query_ldap', 'check_ldap_version',
            'new_user', 'set_user', 'delete_user', 'set_user_password', 'add_to_group', 'remove_to_group',
            'filetime_to_datetime', 'datetime_to_filetime', 'get_time_sync', 'string_to_datetime', 'mac_format',
-           'connect_client', 'run_command', 'get_mac_address', 'get_client_user', 'check_vlan_attributes', 'VERSION']
+           'connect_client', 'run_command', 'get_mac_address', 'get_client_user', 'check_vlan_attributes', 'VERSION',
+           'get_mac_from_file']
 bind_start = False
 
 
@@ -338,6 +339,51 @@ def write_config(obj, path):
     """
     with open('{0}'.format(path), 'w') as file:
         yaml.dump(obj, file)
+
+
+def get_mac_from_file(path, format_mac='none'):
+    """
+    Get mac-address from file list
+
+    :param path: Path of file list. Mac-address can write in any format.
+
+        file example (/tmp/list.txt):
+
+        112233445566\n
+        # mac of my Linux\n
+        11-22-33-44-55-66\n
+        # this macs is\n
+        # other pc of my office\n
+        \n
+        11:22:33:44:55:66\n
+        1122.3344.5566\n
+
+    :param format_mac: mac format are (default=none):
+
+        none 	112233445566
+
+        hypen 	11-22-33-44-55-66
+
+        colon 	11:22:33:44:55:66
+
+        dot	    1122.3344.5566
+
+    :return: list
+
+    .. testcode::
+
+        >>> get_mac_from_file('/tmp/list')
+    """
+    macs = list()
+    f = open(path)
+    # Support empty line
+    lines = [line.strip() for line in f if line.strip()]
+    for line in lines:
+        mac = line.strip()
+        # Support comment line
+        if not mac.startswith('#'):
+            macs.append(mac_format(mac, format_mac))
+    return macs
 
 
 def get_platform():
