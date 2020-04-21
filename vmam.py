@@ -169,7 +169,6 @@ import time
 import socket
 import logging
 import argparse
-import platform
 import datetime
 
 
@@ -398,14 +397,7 @@ def get_platform():
         >>> print(p)
     """
     # Create os info object
-    os_info = {}
-    # Check os
-    if platform.system() == "Darwin":
-        os_info['conf_default'] = os.path.expandvars('/private/etc/vmam/vmam.yml')
-        os_info['log_default'] = os.path.expandvars('/private/var/vmam/vmam.log')
-    else:
-        os_info['conf_default'] = '/etc/vmam/vmam.yml'
-        os_info['log_default'] = '/var/log/vmam/vmam.log'
+    os_info = {'conf_default': '/etc/vmam/vmam.yml', 'log_default': '/var/log/vmam/vmam.log'}
     return os_info
 
 
