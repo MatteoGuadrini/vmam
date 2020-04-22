@@ -120,29 +120,26 @@ Usage like a module:
     # start script
     debugger(debug, wt, 'Start...')
 
-    # open list of mac address
-    macs = open('/tmp/mac_list.txt', 'r')
-
     # connect to LDAP server
     conn = connect_ldap(['dc1.foo.bar'])
     bind = bind_ldap(conn, r'domain\\admin', 'password', tls=True)
     ldap_version = check_ldap_version(bind, 'dc=foo,dc=bar')
 
-    for line in macs:
-        # support empty line format
-        if line:
-            debugger(debug, wt, 'create mac address {}'.format(line))
-            # create mac address
-            mac = mac_format('1A2b3c4D5E6F', 'none')
-            dn = 'cn={},ou=mac,dc=foo,dc=bar'.format(mac)
-            attrs = {'givenname': 'mac-address',
-                     'sn': mac,
-                     'samaccountname': mac
-                     }
-            new_user(bind, dn, **attrs)
-            add_to_group(bind, 'cn=vlan_group100,ou=groups,dc=foo,dc=bar', dn)
-            set_user(bind, dn, pwdlastset=-1, useraccountcontrol=66048)
-            set_user_password(bind, dn, mac, ldap_version=ldap_version)
+    for mac in get_mac_from_file('/tmp/mac_list.txt'):
+        debugger(debug, wt, 'create mac address {}'.format(mac))
+        # create mac address
+        dn = 'cn={},ou=mac,dc=foo,dc=bar'.format(mac)
+        attrs = {'givenname': 'mac-address',
+                    'sn': mac,
+                    'samaccountname': mac
+                }
+        # create mac-address user
+        new_user(bind, dn, **attrs)
+        # add mac user to vlan group
+        add_to_group(bind, 'cn=vlan_group100,ou=groups,dc=foo,dc=bar', dn)
+        # set password and password never expires
+        set_user(bind, dn, pwdlastset=-1, useraccountcontrol=66048)
+        set_user_password(bind, dn, mac, ldap_version=ldap_version)
 
 AUTHOR
 
