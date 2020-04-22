@@ -193,7 +193,7 @@ VERSION = '1.2.3'
 __all__ = ['logwriter', 'debugger', 'confirm', 'read_config', 'get_platform', 'new_config', 'bind_ldap',
            'check_connection', 'check_config', 'connect_ldap', 'unbind_ldap', 'query_ldap', 'check_ldap_version',
            'new_user', 'set_user', 'delete_user', 'set_user_password', 'add_to_group', 'remove_to_group',
-           'filetime_to_datetime', 'datetime_to_filetime', 'get_time_sync', 'string_to_datetime', 'mac_format',
+           'filetime_to_datetime', 'datetime_to_filetime', 'get_time_sync', 'string_to_datetime', 'format_mac',
            'connect_client', 'run_command', 'get_mac_address', 'get_client_user', 'check_vlan_attributes', 'VERSION',
            'get_mac_from_file']
 bind_start = False
@@ -337,7 +337,7 @@ def write_config(obj, path):
         yaml.dump(obj, file)
 
 
-def get_mac_from_file(path, format_mac='none'):
+def get_mac_from_file(path, mac_format='none'):
     """
     Get mac-address from file list
 
@@ -354,7 +354,7 @@ def get_mac_from_file(path, format_mac='none'):
         11:22:33:44:55:66\n
         1122.3344.5566\n
 
-    :param format_mac: mac format are (default=none):
+    :param mac_format: mac format are (default=none):
 
         none 	112233445566
 
@@ -378,7 +378,7 @@ def get_mac_from_file(path, format_mac='none'):
         mac = line.strip()
         # Support comment line
         if not mac.startswith('#'):
-            macs.append(mac_format(mac, format_mac))
+            macs.append(format_mac(mac, mac_format))
     return macs
 
 
@@ -912,43 +912,42 @@ def string_to_datetime(string):
         return False
 
 
-def mac_format(mac_address, format_mac):
+def format_mac(mac_address, mac_format='none'):
     """
     Format mac-address with the specified format
 
     :param mac_address: mac-address in any format
-    :param format_mac: mac format are (default=none):
+    :param mac_format: mac format are (default=none):
 
-        none 	112233445566
-
-        hypen 	11-22-33-44-55-66
-
-        colon 	11:22:33:44:55:66
-
-        dot	    1122.3344.5566
+        none 	112233445566\n
+        hypen 	11-22-33-44-55-66\n
+        colon 	11:22:33:44:55:66\n
+        dot	    1122.3344.5566\n
 
     :return: mac-address with the specified format
 
     .. testcode::
 
-        >>> mac = mac_format('1A2b3c4D5E6F', 'dot')
+        >>> mac = format_mac('1A2b3c4D5E6F', 'dot')
         >>> print(mac)
     """
     # Set format
     form = {
         'none': lambda x: x.replace('.', '').replace('-', '').replace(':', '').lower(),
-        'hypen': lambda x: '-'.join([x[i:i + 2] for i in range(0, len(x), 2)]).replace('.', '').replace(':',
-                                                                                                        '').lower(),
-        'colon': lambda x: ':'.join([x[i:i + 2] for i in range(0, len(x), 2)]).replace('.', '').replace('-',
-                                                                                                        '').lower(),
-        'dot': lambda x: '.'.join([x[i:i + 4] for i in range(0, len(x), 4)]).replace(':', '').replace('-', '').lower()
+        'hypen': lambda x: '-'.join([x[i:i + 2] for i in range(0, len(x), 2)]
+                                    ).replace('.', '').replace(':', '').lower(),
+        'colon': lambda x: ':'.join([x[i:i + 2] for i in range(0, len(x), 2)]
+                                    ).replace('.', '').replace('-', '').lower(),
+        'dot': lambda x: '.'.join([x[i:i + 4] for i in range(0, len(x), 4)]
+                                  ).replace(':', '').replace('-', '').lower()
     }
+    mac = form.get('none')(mac_address)
     # Get format
     try:
-        return form.get(format_mac)(mac_address)
+        return form.get(mac_format)(mac)
     except TypeError:
-        print('ERROR: "{0}" format not available. Available: none, hypen, colon, dot.'.format(format_mac))
-        return form.get('none')(mac_address)
+        print('ERROR: "{0}" format not available. Available: "none", "hypen", "colon", "dot".'.format(mac_format))
+        return mac
 
 
 def connect_client(client, user, password):
@@ -1201,7 +1200,7 @@ if __name__ == '__main__':
         :param description: description string value for LDAP user
         :return: None
         """
-        mac = mac_format(mac, config['VMAM']['mac_format'])
+        mac = format_mac(mac, config['VMAM']['mac_format'])
         print('Add mac-address {0} on LDAP servers {1} in {2} VLAN group'.format(
             mac, ','.join(config['LDAP']['servers']), vgroup))
         debugger(arguments.verbose, logger, 'Add mac-address {0} on LDAP servers {1} in {2} VLAN group'.format(
@@ -1362,7 +1361,7 @@ if __name__ == '__main__':
         :param description: description string value for LDAP user
         :return: None
         """
-        mac = mac_format(mac, config['VMAM']['mac_format'])
+        mac = format_mac(mac, config['VMAM']['mac_format'])
         print('Disable mac-address {0} on LDAP servers {1}'.format(mac, ','.join(config['LDAP']['servers'])))
         debugger(arguments.verbose, logger, 'Disable mac-address {0} on LDAP servers {1}'.format(
             mac, ','.join(config['LDAP']['servers'])))
@@ -1406,7 +1405,7 @@ if __name__ == '__main__':
         :param arguments: parser object arguments
         :return: None
         """
-        mac = mac_format(mac, config['VMAM']['mac_format'])
+        mac = format_mac(mac, config['VMAM']['mac_format'])
         print('Delete mac-address {0} on LDAP servers {1}'.format(mac, ','.join(config['LDAP']['servers'])))
         debugger(arguments.verbose, logger, 'Delete mac-address {0} on LDAP servers {1}'.format(
             mac, ','.join(config['LDAP']['servers'])))
@@ -1682,7 +1681,7 @@ if __name__ == '__main__':
                                                                  description='User: {0} Mac: {1}'.format(
                                                                      users[0][0],
                                                                      ' '.join(
-                                                                         [mac_format(mac, cfg['VMAM']['mac_format'])
+                                                                         [format_mac(mac, cfg['VMAM']['mac_format'])
                                                                           for mac in macs]
                                                                      )
                                                                  ))
