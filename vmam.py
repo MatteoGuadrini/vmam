@@ -1213,7 +1213,7 @@ if __name__ == '__main__':
             mac, ','.join(config['LDAP']['servers'])))
         ret = query_ldap(bind, config['LDAP']['mac_user_base_dn'], ['samaccountname', 'description'],
                          samaccountname=mac)
-        if not ret[0].get('dn'):
+        if not ret and not ret[0].get('dn'):
             debugger(arguments.verbose, logger, 'Mac-address {0} not exists on LDAP servers {1}'.format(
                 mac, ','.join(config['LDAP']['servers'])))
             # Add mac-address to LDAP
@@ -1371,7 +1371,8 @@ if __name__ == '__main__':
         # Query: check if mac-address exist
         debugger(arguments.verbose, logger, 'Exist mac-address {0} on LDAP servers {1}?'.format(
             mac, ','.join(config['LDAP']['servers'])))
-        ret = query_ldap(bind, config['LDAP']['mac_user_base_dn'], ['samaccountname'], samaccountname=mac)
+        ret = query_ldap(bind, config['LDAP']['mac_user_base_dn'], ['samaccountname', 'description'],
+                         samaccountname=mac)
         if ret and ret[0].get('dn'):
             force = confirm('Do you want to disable {0} mac-address?'.format(mac)) if not arguments.force else True
             if force:
@@ -1381,7 +1382,7 @@ if __name__ == '__main__':
                     else:
                         set_user(bind, dn, nsaccountlock='True')
                     # Modify description
-                    if description not in ret[0]['attributes'].get('description'):
+                    if description not in ret[0].get('attributes').get('description'):
                         set_user(bind, dn, description=description)
                 except Exception as err:
                     print('ERROR:', err)
@@ -1542,12 +1543,13 @@ if __name__ == '__main__':
         debugger(arguments.verbose, wt, 'Bind on LDAP servers {0} with user {1}'.format(
             ','.join(cfg['LDAP']['servers']), cfg['LDAP']['bind_user']))
         bind = bind_ldap(srv, cfg['LDAP']['bind_user'], cfg['LDAP']['bind_pwd'], tls=cfg['LDAP']['tls'])
-        desc = arguments.description if arguments.description else ''.join(arguments.add)
         # Check actions
         if arguments.add:
             vlanid = arguments.vlanid[0]
+            desc = arguments.description if arguments.description else ''.join(arguments.add)
             cli_new_mac(cfg, bind, ''.join(arguments.add), vlanid, wt, arguments, description=desc)
         elif arguments.disable:
+            desc = arguments.description if arguments.description else ''.join(arguments.disable)
             cli_disable_mac(cfg, bind, ''.join(arguments.disable), wt, arguments, description=desc)
         elif arguments.remove:
             cli_delete_mac(cfg, bind, ''.join(arguments.remove), wt, arguments)
