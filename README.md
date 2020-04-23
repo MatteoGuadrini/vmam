@@ -5,6 +5,7 @@
 <br>
 
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/7fc47024f17f4dffa3be08a7a5ab31bd)](https://app.codacy.com/app/MatteoGuadrini/vmam?utm_source=github.com&utm_medium=referral&utm_content=MatteoGuadrini/vmam&utm_campaign=Badge_Grade_Dashboard)
+[![CircleCI](https://circleci.com/gh/MatteoGuadrini/vmam.svg?style=svg)](https://circleci.com/gh/MatteoGuadrini/vmam)
 
 `vmam` is a Free and Open Source network access control (NAC) solution. 
 that access the network under a specific domain and a specific VLAN, through LDAP authentication and RADIUS server.
