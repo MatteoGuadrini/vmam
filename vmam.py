@@ -356,13 +356,10 @@ def get_mac_from_file(path, mac_format='none'):
 
     :param mac_format: mac format are (default=none):
 
-        none 	112233445566
-
-        hypen 	11-22-33-44-55-66
-
-        colon 	11:22:33:44:55:66
-
-        dot	    1122.3344.5566
+        none 	112233445566\n
+        hypen 	11-22-33-44-55-66\n
+        colon 	11:22:33:44:55:66\n
+        dot	    1122.3344.5566\n
 
     :return: list
 
@@ -442,7 +439,7 @@ def new_config(path=(get_platform()['conf_default'])):
             'filter_exclude': ['list1', 'list2'],
             'log': get_platform()['log_default'],
             'automatic_process_wait': 3,
-            'black_list': '/etc/vmam/blacklist',
+            'black_list': '',
             'remove_process': True,
             'user_match_id': {
                 'value1': 100,
@@ -1169,6 +1166,21 @@ if __name__ == '__main__':
         # Check import dependencies
         for mod in mods:
             assert check_module(mod), 'Install "{0}" module with pip install.'.format(mod)
+
+
+    def cli_check_list(mac, mac_list):
+        """
+        Check list if contains one mac-address
+
+        :param mac: mac-address searched in the file
+        :param mac_list: path of file list of mac-addresses
+        :return: boolean
+        """
+        # Check if mac-address in a list
+        if mac in mac_list:
+            return True
+        else:
+            return False
 
 
     def cli_select_action(action):
