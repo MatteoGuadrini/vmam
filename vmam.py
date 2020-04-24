@@ -1180,7 +1180,7 @@ if __name__ == '__main__':
         Check list if contains one mac-address
 
         :param mac: mac-address searched in the file
-        :param mac_list: path of file list of mac-addresses
+        :param mac_list: list of mac-addresses
         :return: boolean
         """
         # Check if mac-address in a list
@@ -1232,7 +1232,7 @@ if __name__ == '__main__':
             mac, ','.join(config['LDAP']['servers'])))
         ret = query_ldap(bind, config['LDAP']['mac_user_base_dn'], ['samaccountname', 'description'],
                          samaccountname=mac)
-        if not ret and not ret[0].get('dn'):
+        if not ret or not ret[0].get('dn'):
             debugger(arguments.verbose, logger, 'Mac-address {0} not exists on LDAP servers {1}'.format(
                 mac, ','.join(config['LDAP']['servers'])))
             # Add mac-address to LDAP
