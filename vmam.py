@@ -317,8 +317,15 @@ def read_config(path):
         >>> cfg = read_config('/tmp/vmam.yml')
         >>> print(cfg)
     """
-    with open('{0}'.format(path)) as file:
-        return yaml.full_load(file)
+    try:
+        with open('{0}'.format(path)) as file:
+            return yaml.full_load(file)
+    except FileNotFoundError as err:
+        print('ERROR: {0}'.format(err))
+        exit(3)
+    except OSError as err:
+        print('ERROR: {0}'.format(err))
+        exit(2)
 
 
 def write_config(obj, path):
