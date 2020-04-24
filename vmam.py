@@ -1691,6 +1691,45 @@ if __name__ == '__main__':
                                                     if 'user' in cfg['LDAP']['add_group_type']:
                                                         desc = 'User: {0}, Computer: {1}'.format(
                                                             users[0][0], c_attribute.get('name'))
+                                                        # Check blacklist
+                                                        if cfg['VMAM']['black_list']:
+                                                            # Verify if black list file exists
+                                                            if os.path.exists(cfg['VMAM']['black_list']):
+                                                                # Transform file in a list
+                                                                mac_list = get_mac_from_file(cfg['VMAM']['black_list'],
+                                                                                             cfg['VMAM']['mac_format'])
+                                                                ret = query_ldap(bind_start,
+                                                                                 cfg['LDAP']['mac_user_base_dn'],
+                                                                                 ['samaccountname'],
+                                                                                 samaccountname=mac)
+                                                                # Now, check if mac is blacklisted
+                                                                if cli_check_list(mac, mac_list):
+                                                                    print(
+                                                                        'WARNING: The mac-address {0} is blacklisted. '
+                                                                        'See black list file: {1}'.format(
+                                                                            ''.join(arguments.add),
+                                                                            cfg['VMAM']['black_list']
+                                                                        ))
+                                                                    wt.warning(
+                                                                        'The mac-address {0} is blacklisted. '
+                                                                        'See black list file: {1}'.format(
+                                                                            ''.join(arguments.add),
+                                                                            cfg['VMAM']['black_list']
+                                                                        ))
+                                                                    if ret and ret[0].get('dn'):
+                                                                        desc = 'Blacklisted mac-address.'
+                                                                        cli_disable_mac(cfg, bind_start,
+                                                                                        mac.get('attributes').get(
+                                                                                            'samaccountname'), wt,
+                                                                                        arguments,
+                                                                                        description=desc)
+                                                                    continue
+                                                            else:
+                                                                print('ERROR: The file {0} does not exist.'.format(
+                                                                    cfg['VMAM']['black_list']))
+                                                                wt.error('The file {0} does not exist.'.format(
+                                                                    cfg['VMAM']['black_list']))
+                                                                exit(3)
                                                         cli_new_mac(cfg, bind_start, mac, vid, wt, arguments,
                                                                     description=desc)
                                                     else:
