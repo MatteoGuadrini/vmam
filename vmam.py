@@ -1564,6 +1564,25 @@ if __name__ == '__main__':
         bind = bind_ldap(srv, cfg['LDAP']['bind_user'], cfg['LDAP']['bind_pwd'], tls=cfg['LDAP']['tls'])
         # Check actions
         if arguments.add:
+            # Check blacklist
+            if cfg['VMAM']['black_list']:
+                # Verify if black list file exists
+                if os.path.exists(cfg['VMAM']['black_list']):
+                    # Transform file in a list
+                    mac_list = get_mac_from_file(cfg['VMAM']['black_list'], cfg['VMAM']['mac_format'])
+                    # Now, check if mac is blacklisted
+                    if cli_check_list(''.join(arguments.add), mac_list):
+                        print('WARNING: The mac-address {0} is blacklisted. See black list file: {1}'.format(
+                            ''.join(arguments.add), cfg['VMAM']['black_list']
+                        ))
+                        wt.warning('The mac-address {0} is blacklisted. See black list file: {1}'.format(
+                            ''.join(arguments.add), cfg['VMAM']['black_list']
+                        ))
+                        exit(13)
+                else:
+                    print('ERROR: The file {0} does not exist.'.format(cfg['VMAM']['black_list']))
+                    wt.error('The file {0} does not exist.'.format(cfg['VMAM']['black_list']))
+                    exit(3)
             vlanid = arguments.vlanid[0]
             desc = arguments.description if arguments.description else ''.join(arguments.add)
             cli_new_mac(cfg, bind, ''.join(arguments.add), vlanid, wt, arguments, description=desc)
