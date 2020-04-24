@@ -1242,7 +1242,7 @@ if __name__ == '__main__':
                      'userprincipalname': '{0}@{1}'.format(mac, config['LDAP']['domain']),
                      'description': description}
             # Check write_attrib on configuration file
-            vflag = 'VMAM_MANUAL' if arguments.action == 'mac' else 'VMAM_AUTO'
+            vflag = 'VMAM_MANUAL {0}'.format(VERSION) if arguments.action == 'mac' else 'VMAM_AUTO {0}'.format(VERSION)
             if config['LDAP']['write_attrib']:
                 attrs[config['LDAP']['write_attrib']] = vflag
             else:
