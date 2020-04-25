@@ -52,6 +52,7 @@ The configuration file is in `YAML <https://yaml.org/>`_ format.
       remove_process: true                      # Enable vmam remove or disabling process; disabling depend of "soft_deletion"
       automatic_process_wait: 3                 # Integer represent seconds of wait for automatic process
       mac_format: none                          # Mac-address format (none - dot - hypens - colon)
+      black_list: /etc/vmam/black.list          # File containing blacklisted mac-addresses
       soft_deletion: true                       # If this is true, the mac-addresses are disabled and not deleted
       user_match_id:                            # Based on the attribute specified in "verify_attrib". The key is the value to be matched while the value is the VLAN id
         OU=IT: 100
@@ -107,6 +108,7 @@ filter_exclude          Mac-address filters to be excluded (See output of comman
 log                     Path of vmam log [string]
 remove_process          Enable vmam remove or disabling process; disabling depend of "soft_deletion" [boolean]
 mac_format              "none", "dot", "hypens" or "colon" [string]
+black_list              File containing blacklisted mac-addresses. The file can contains mac in any format and comment ("#comment") [string]
 automatic_process_wait  Integer represent seconds of wait for automatic process [int]
 soft_deletion           If this is "true", the mac-addresses are disabled and not deleted [boolean]
 user_match_id           Based on the attribute specified in "verify_attrib". The key is the value to be matched while the value is the VLAN id [dictionary]

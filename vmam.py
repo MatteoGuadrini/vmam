@@ -120,29 +120,26 @@ Usage like a module:
     # start script
     debugger(debug, wt, 'Start...')
 
-    # open list of mac address
-    macs = open('/tmp/mac_list.txt', 'r')
-
     # connect to LDAP server
     conn = connect_ldap(['dc1.foo.bar'])
     bind = bind_ldap(conn, r'domain\\admin', 'password', tls=True)
     ldap_version = check_ldap_version(bind, 'dc=foo,dc=bar')
 
-    for line in macs:
-        # support empty line format
-        if line:
-            debugger(debug, wt, 'create mac address {}'.format(line))
-            # create mac address
-            mac = mac_format('1A2b3c4D5E6F', 'none')
-            dn = 'cn={},ou=mac,dc=foo,dc=bar'.format(mac)
-            attrs = {'givenname': 'mac-address',
-                     'sn': mac,
-                     'samaccountname': mac
-                     }
-            new_user(bind, dn, **attrs)
-            add_to_group(bind, 'cn=vlan_group100,ou=groups,dc=foo,dc=bar', dn)
-            set_user(bind, dn, pwdlastset=-1, useraccountcontrol=66048)
-            set_user_password(bind, dn, mac, ldap_version=ldap_version)
+    for mac in get_mac_from_file('/tmp/mac_list.txt'):
+        debugger(debug, wt, 'create mac address {}'.format(mac))
+        # create mac address
+        dn = 'cn={},ou=mac,dc=foo,dc=bar'.format(mac)
+        attrs = {'givenname': 'mac-address',
+                    'sn': mac,
+                    'samaccountname': mac
+                }
+        # create mac-address user
+        new_user(bind, dn, **attrs)
+        # add mac user to vlan group
+        add_to_group(bind, 'cn=vlan_group100,ou=groups,dc=foo,dc=bar', dn)
+        # set password and password never expires
+        set_user(bind, dn, pwdlastset=-1, useraccountcontrol=66048)
+        set_user_password(bind, dn, mac, ldap_version=ldap_version)
 
 AUTHOR
 
@@ -169,7 +166,6 @@ import time
 import socket
 import logging
 import argparse
-import platform
 import datetime
 
 
@@ -193,12 +189,13 @@ def check_module(module):
 # endregion
 
 # region Global variable
-VERSION = '1.2.3'
+VERSION = '1.3.0'
 __all__ = ['logwriter', 'debugger', 'confirm', 'read_config', 'get_platform', 'new_config', 'bind_ldap',
            'check_connection', 'check_config', 'connect_ldap', 'unbind_ldap', 'query_ldap', 'check_ldap_version',
            'new_user', 'set_user', 'delete_user', 'set_user_password', 'add_to_group', 'remove_to_group',
-           'filetime_to_datetime', 'datetime_to_filetime', 'get_time_sync', 'string_to_datetime', 'mac_format',
-           'connect_client', 'run_command', 'get_mac_address', 'get_client_user', 'check_vlan_attributes', 'VERSION']
+           'filetime_to_datetime', 'datetime_to_filetime', 'get_time_sync', 'string_to_datetime', 'format_mac',
+           'connect_client', 'run_command', 'get_mac_address', 'get_client_user', 'check_vlan_attributes', 'VERSION',
+           'get_mac_from_file']
 bind_start = False
 
 
@@ -320,8 +317,15 @@ def read_config(path):
         >>> cfg = read_config('/tmp/vmam.yml')
         >>> print(cfg)
     """
-    with open('{0}'.format(path)) as file:
-        return yaml.full_load(file)
+    try:
+        with open('{0}'.format(path)) as file:
+            return yaml.full_load(file)
+    except FileNotFoundError as err:
+        print('ERROR: {0}'.format(err))
+        exit(3)
+    except OSError as err:
+        print('ERROR: {0}'.format(err))
+        exit(2)
 
 
 def write_config(obj, path):
@@ -340,6 +344,48 @@ def write_config(obj, path):
         yaml.dump(obj, file)
 
 
+def get_mac_from_file(path, mac_format='none'):
+    """
+    Get mac-address from file list
+
+    :param path: Path of file list. Mac-address can write in any format.
+
+        file example (/tmp/list.txt):
+
+        112233445566\n
+        # mac of my Linux\n
+        11-22-33-44-55-66\n
+        # this macs is\n
+        # other pc of my office\n
+        \n
+        11:22:33:44:55:66\n
+        1122.3344.5566\n
+
+    :param mac_format: mac format are (default=none):
+
+        none 	112233445566\n
+        hypen 	11-22-33-44-55-66\n
+        colon 	11:22:33:44:55:66\n
+        dot	    1122.3344.5566\n
+
+    :return: list
+
+    .. testcode::
+
+        >>> get_mac_from_file('/tmp/list')
+    """
+    macs = list()
+    f = open(path)
+    # Support empty line
+    lines = [line.strip() for line in f if line.strip()]
+    for line in lines:
+        mac = line.strip()
+        # Support comment line
+        if not mac.startswith('#'):
+            macs.append(format_mac(mac, mac_format))
+    return macs
+
+
 def get_platform():
     """
     Get a platform (OS info)
@@ -352,14 +398,7 @@ def get_platform():
         >>> print(p)
     """
     # Create os info object
-    os_info = {}
-    # Check os
-    if platform.system() == "Darwin":
-        os_info['conf_default'] = os.path.expandvars('/private/etc/vmam/vmam.yml')
-        os_info['log_default'] = os.path.expandvars('/private/var/vmam/vmam.log')
-    else:
-        os_info['conf_default'] = '/etc/vmam/vmam.yml'
-        os_info['log_default'] = '/var/log/vmam/vmam.log'
+    os_info = {'conf_default': '/etc/vmam/vmam.yml', 'log_default': '/var/log/vmam/vmam.log'}
     return os_info
 
 
@@ -407,6 +446,7 @@ def new_config(path=(get_platform()['conf_default'])):
             'filter_exclude': ['list1', 'list2'],
             'log': get_platform()['log_default'],
             'automatic_process_wait': 3,
+            'black_list': '',
             'remove_process': True,
             'user_match_id': {
                 'value1': 100,
@@ -876,43 +916,42 @@ def string_to_datetime(string):
         return False
 
 
-def mac_format(mac_address, format_mac):
+def format_mac(mac_address, mac_format='none'):
     """
     Format mac-address with the specified format
 
     :param mac_address: mac-address in any format
-    :param format_mac: mac format are (default=none):
+    :param mac_format: mac format are (default=none):
 
-        none 	112233445566
-
-        hypen 	11-22-33-44-55-66
-
-        colon 	11:22:33:44:55:66
-
-        dot	    1122.3344.5566
+        none 	112233445566\n
+        hypen 	11-22-33-44-55-66\n
+        colon 	11:22:33:44:55:66\n
+        dot	    1122.3344.5566\n
 
     :return: mac-address with the specified format
 
     .. testcode::
 
-        >>> mac = mac_format('1A2b3c4D5E6F', 'dot')
+        >>> mac = format_mac('1A2b3c4D5E6F', 'dot')
         >>> print(mac)
     """
     # Set format
     form = {
         'none': lambda x: x.replace('.', '').replace('-', '').replace(':', '').lower(),
-        'hypen': lambda x: '-'.join([x[i:i + 2] for i in range(0, len(x), 2)]).replace('.', '').replace(':',
-                                                                                                        '').lower(),
-        'colon': lambda x: ':'.join([x[i:i + 2] for i in range(0, len(x), 2)]).replace('.', '').replace('-',
-                                                                                                        '').lower(),
-        'dot': lambda x: '.'.join([x[i:i + 4] for i in range(0, len(x), 4)]).replace(':', '').replace('-', '').lower()
+        'hypen': lambda x: '-'.join([x[i:i + 2] for i in range(0, len(x), 2)]
+                                    ).replace('.', '').replace(':', '').lower(),
+        'colon': lambda x: ':'.join([x[i:i + 2] for i in range(0, len(x), 2)]
+                                    ).replace('.', '').replace('-', '').lower(),
+        'dot': lambda x: '.'.join([x[i:i + 4] for i in range(0, len(x), 4)]
+                                  ).replace(':', '').replace('-', '').lower()
     }
+    mac = form.get('none')(mac_address)
     # Get format
     try:
-        return form.get(format_mac)(mac_address)
+        return form.get(mac_format)(mac)
     except TypeError:
-        print('ERROR: "{0}" format not available. Available: none, hypen, colon, dot.'.format(format_mac))
-        return form.get('none')(mac_address)
+        print('ERROR: "{0}" format not available. Available: "none", "hypen", "colon", "dot".'.format(mac_format))
+        return mac
 
 
 def connect_client(client, user, password):
@@ -1136,6 +1175,21 @@ if __name__ == '__main__':
             assert check_module(mod), 'Install "{0}" module with pip install.'.format(mod)
 
 
+    def cli_check_list(mac, mac_list):
+        """
+        Check list if contains one mac-address
+
+        :param mac: mac-address searched in the file
+        :param mac_list: list of mac-addresses
+        :return: boolean
+        """
+        # Check if mac-address in a list
+        if mac in mac_list:
+            return True
+        else:
+            return False
+
+
     def cli_select_action(action):
         """
         Select action
@@ -1165,7 +1219,7 @@ if __name__ == '__main__':
         :param description: description string value for LDAP user
         :return: None
         """
-        mac = mac_format(mac, config['VMAM']['mac_format'])
+        mac = format_mac(mac, config['VMAM']['mac_format'])
         print('Add mac-address {0} on LDAP servers {1} in {2} VLAN group'.format(
             mac, ','.join(config['LDAP']['servers']), vgroup))
         debugger(arguments.verbose, logger, 'Add mac-address {0} on LDAP servers {1} in {2} VLAN group'.format(
@@ -1178,7 +1232,7 @@ if __name__ == '__main__':
             mac, ','.join(config['LDAP']['servers'])))
         ret = query_ldap(bind, config['LDAP']['mac_user_base_dn'], ['samaccountname', 'description'],
                          samaccountname=mac)
-        if not ret[0].get('dn'):
+        if not ret or not ret[0].get('dn'):
             debugger(arguments.verbose, logger, 'Mac-address {0} not exists on LDAP servers {1}'.format(
                 mac, ','.join(config['LDAP']['servers'])))
             # Add mac-address to LDAP
@@ -1188,7 +1242,7 @@ if __name__ == '__main__':
                      'userprincipalname': '{0}@{1}'.format(mac, config['LDAP']['domain']),
                      'description': description}
             # Check write_attrib on configuration file
-            vflag = 'VMAM_MANUAL' if arguments.action == 'mac' else 'VMAM_AUTO'
+            vflag = 'VMAM_MANUAL {0}'.format(VERSION) if arguments.action == 'mac' else 'VMAM_AUTO {0}'.format(VERSION)
             if config['LDAP']['write_attrib']:
                 attrs[config['LDAP']['write_attrib']] = vflag
             else:
@@ -1326,7 +1380,7 @@ if __name__ == '__main__':
         :param description: description string value for LDAP user
         :return: None
         """
-        mac = mac_format(mac, config['VMAM']['mac_format'])
+        mac = format_mac(mac, config['VMAM']['mac_format'])
         print('Disable mac-address {0} on LDAP servers {1}'.format(mac, ','.join(config['LDAP']['servers'])))
         debugger(arguments.verbose, logger, 'Disable mac-address {0} on LDAP servers {1}'.format(
             mac, ','.join(config['LDAP']['servers'])))
@@ -1336,7 +1390,8 @@ if __name__ == '__main__':
         # Query: check if mac-address exist
         debugger(arguments.verbose, logger, 'Exist mac-address {0} on LDAP servers {1}?'.format(
             mac, ','.join(config['LDAP']['servers'])))
-        ret = query_ldap(bind, config['LDAP']['mac_user_base_dn'], ['samaccountname'], samaccountname=mac)
+        ret = query_ldap(bind, config['LDAP']['mac_user_base_dn'], ['samaccountname', 'description'],
+                         samaccountname=mac)
         if ret and ret[0].get('dn'):
             force = confirm('Do you want to disable {0} mac-address?'.format(mac)) if not arguments.force else True
             if force:
@@ -1346,7 +1401,7 @@ if __name__ == '__main__':
                     else:
                         set_user(bind, dn, nsaccountlock='True')
                     # Modify description
-                    if description not in ret[0]['attributes'].get('description'):
+                    if description not in ret[0].get('attributes').get('description'):
                         set_user(bind, dn, description=description)
                 except Exception as err:
                     print('ERROR:', err)
@@ -1370,7 +1425,7 @@ if __name__ == '__main__':
         :param arguments: parser object arguments
         :return: None
         """
-        mac = mac_format(mac, config['VMAM']['mac_format'])
+        mac = format_mac(mac, config['VMAM']['mac_format'])
         print('Delete mac-address {0} on LDAP servers {1}'.format(mac, ','.join(config['LDAP']['servers'])))
         debugger(arguments.verbose, logger, 'Delete mac-address {0} on LDAP servers {1}'.format(
             mac, ','.join(config['LDAP']['servers'])))
@@ -1507,12 +1562,32 @@ if __name__ == '__main__':
         debugger(arguments.verbose, wt, 'Bind on LDAP servers {0} with user {1}'.format(
             ','.join(cfg['LDAP']['servers']), cfg['LDAP']['bind_user']))
         bind = bind_ldap(srv, cfg['LDAP']['bind_user'], cfg['LDAP']['bind_pwd'], tls=cfg['LDAP']['tls'])
-        desc = arguments.description if arguments.description else ''.join(arguments.add)
         # Check actions
         if arguments.add:
+            # Check blacklist
+            if cfg['VMAM']['black_list']:
+                # Verify if black list file exists
+                if os.path.exists(cfg['VMAM']['black_list']):
+                    # Transform file in a list
+                    mac_list = get_mac_from_file(cfg['VMAM']['black_list'], cfg['VMAM']['mac_format'])
+                    # Now, check if mac is blacklisted
+                    if cli_check_list(''.join(arguments.add), mac_list):
+                        print('WARNING: The mac-address {0} is blacklisted. See black list file: {1}'.format(
+                            ''.join(arguments.add), cfg['VMAM']['black_list']
+                        ))
+                        wt.warning('The mac-address {0} is blacklisted. See black list file: {1}'.format(
+                            ''.join(arguments.add), cfg['VMAM']['black_list']
+                        ))
+                        exit(13)
+                else:
+                    print('ERROR: The file {0} does not exist.'.format(cfg['VMAM']['black_list']))
+                    wt.error('The file {0} does not exist.'.format(cfg['VMAM']['black_list']))
+                    exit(3)
             vlanid = arguments.vlanid[0]
+            desc = arguments.description if arguments.description else ''.join(arguments.add)
             cli_new_mac(cfg, bind, ''.join(arguments.add), vlanid, wt, arguments, description=desc)
         elif arguments.disable:
+            desc = arguments.description if arguments.description else ''.join(arguments.disable)
             cli_disable_mac(cfg, bind, ''.join(arguments.disable), wt, arguments, description=desc)
         elif arguments.remove:
             cli_delete_mac(cfg, bind, ''.join(arguments.remove), wt, arguments)
@@ -1616,6 +1691,45 @@ if __name__ == '__main__':
                                                     if 'user' in cfg['LDAP']['add_group_type']:
                                                         desc = 'User: {0}, Computer: {1}'.format(
                                                             users[0][0], c_attribute.get('name'))
+                                                        # Check blacklist
+                                                        if cfg['VMAM']['black_list']:
+                                                            # Verify if black list file exists
+                                                            if os.path.exists(cfg['VMAM']['black_list']):
+                                                                # Transform file in a list
+                                                                mac_list = get_mac_from_file(cfg['VMAM']['black_list'],
+                                                                                             cfg['VMAM']['mac_format'])
+                                                                ret = query_ldap(bind_start,
+                                                                                 cfg['LDAP']['mac_user_base_dn'],
+                                                                                 ['samaccountname'],
+                                                                                 samaccountname=mac)
+                                                                # Now, check if mac is blacklisted
+                                                                if cli_check_list(mac, mac_list):
+                                                                    print(
+                                                                        'WARNING: The mac-address {0} is blacklisted. '
+                                                                        'See black list file: {1}'.format(
+                                                                            ''.join(arguments.add),
+                                                                            cfg['VMAM']['black_list']
+                                                                        ))
+                                                                    wt.warning(
+                                                                        'The mac-address {0} is blacklisted. '
+                                                                        'See black list file: {1}'.format(
+                                                                            ''.join(arguments.add),
+                                                                            cfg['VMAM']['black_list']
+                                                                        ))
+                                                                    if ret and ret[0].get('dn'):
+                                                                        desc = 'Blacklisted mac-address.'
+                                                                        cli_disable_mac(cfg, bind_start,
+                                                                                        mac.get('attributes').get(
+                                                                                            'samaccountname'), wt,
+                                                                                        arguments,
+                                                                                        description=desc)
+                                                                    continue
+                                                            else:
+                                                                print('ERROR: The file {0} does not exist.'.format(
+                                                                    cfg['VMAM']['black_list']))
+                                                                wt.error('The file {0} does not exist.'.format(
+                                                                    cfg['VMAM']['black_list']))
+                                                                exit(3)
                                                         cli_new_mac(cfg, bind_start, mac, vid, wt, arguments,
                                                                     description=desc)
                                                     else:
@@ -1646,7 +1760,7 @@ if __name__ == '__main__':
                                                                  description='User: {0} Mac: {1}'.format(
                                                                      users[0][0],
                                                                      ' '.join(
-                                                                         [mac_format(mac, cfg['VMAM']['mac_format'])
+                                                                         [format_mac(mac, cfg['VMAM']['mac_format'])
                                                                           for mac in macs]
                                                                      )
                                                                  ))

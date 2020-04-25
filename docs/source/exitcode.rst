@@ -19,6 +19,7 @@ This table contains exit codes and their descriptions:
 10                      User enable error
 11                      User disable error
 12                      Mac-address user removal error
+13                      Mac-address is blacklisted
 16                      LDAP group VLAN-ID does not exist
 17                      LDAP custom group not existing
 18                      Error removing LDAP VLAN group
