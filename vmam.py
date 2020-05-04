@@ -1565,7 +1565,7 @@ if __name__ == '__main__':
         # Check actions
         if arguments.add:
             # Check blacklist
-            if cfg['VMAM']['black_list']:
+            if cfg.get('VMAM').get('black_list'):
                 # Verify if black list file exists
                 if os.path.exists(cfg['VMAM']['black_list']):
                     # Transform file in a list
@@ -1692,7 +1692,7 @@ if __name__ == '__main__':
                                                         desc = 'User: {0}, Computer: {1}'.format(
                                                             users[0][0], c_attribute.get('name'))
                                                         # Check blacklist
-                                                        if cfg['VMAM']['black_list']:
+                                                        if cfg.get('VMAM').get('black_list'):
                                                             # Verify if black list file exists
                                                             if os.path.exists(cfg['VMAM']['black_list']):
                                                                 # Transform file in a list
