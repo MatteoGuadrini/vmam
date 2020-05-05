@@ -1653,9 +1653,9 @@ if __name__ == '__main__':
                                 macs = get_mac_address(client)
                             # Check mac list
                             if not macs:
-                                print('WARNING: There are no mac-addresses present in {0} computer'.format(
+                                print('WARNING: There are no mac-addresses present on {0} computer'.format(
                                     c_attribute['name']))
-                                wt.warning('There are no mac-addresses present in {0} computer'.format(
+                                wt.warning('There are no mac-addresses present on {0} computer'.format(
                                     c_attribute['name']))
                                 continue
                             # Get the last user of the computer
