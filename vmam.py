@@ -189,7 +189,7 @@ def check_module(module):
 # endregion
 
 # region Global variable
-VERSION = '1.3.0'
+VERSION = '1.3.1'
 __all__ = ['logwriter', 'debugger', 'confirm', 'read_config', 'get_platform', 'new_config', 'bind_ldap',
            'check_connection', 'check_config', 'connect_ldap', 'unbind_ldap', 'query_ldap', 'check_ldap_version',
            'new_user', 'set_user', 'delete_user', 'set_user_password', 'add_to_group', 'remove_to_group',
@@ -1565,7 +1565,8 @@ if __name__ == '__main__':
         # Check actions
         if arguments.add:
             # Check blacklist
-            if cfg['VMAM']['black_list']:
+            if cfg.get('VMAM').get('black_list'):
+                debugger(arguments.verbose, wt, 'Check black list file {0}'.format(cfg.get('VMAM').get('black_list')))
                 # Verify if black list file exists
                 if os.path.exists(cfg['VMAM']['black_list']):
                     # Transform file in a list
@@ -1652,9 +1653,9 @@ if __name__ == '__main__':
                                 macs = get_mac_address(client)
                             # Check mac list
                             if not macs:
-                                print('WARNING: There are no mac-addresses present in {0} computer'.format(
+                                print('WARNING: There are no mac-addresses present on {0} computer'.format(
                                     c_attribute['name']))
-                                wt.warning('There are no mac-addresses present in {0} computer'.format(
+                                wt.warning('There are no mac-addresses present on {0} computer'.format(
                                     c_attribute['name']))
                                 continue
                             # Get the last user of the computer
@@ -1692,7 +1693,11 @@ if __name__ == '__main__':
                                                         desc = 'User: {0}, Computer: {1}'.format(
                                                             users[0][0], c_attribute.get('name'))
                                                         # Check blacklist
-                                                        if cfg['VMAM']['black_list']:
+                                                        if cfg.get('VMAM').get('black_list'):
+                                                            debugger(arguments.verbose, wt,
+                                                                     'Check black list file {0}'.format(
+                                                                         cfg.get('VMAM').get('black_list')
+                                                                     ))
                                                             # Verify if black list file exists
                                                             if os.path.exists(cfg['VMAM']['black_list']):
                                                                 # Transform file in a list
