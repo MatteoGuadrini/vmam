@@ -53,5 +53,6 @@ setup(
     ],
     long_description=long_description,
     long_description_content_type='text/markdown',
+    data_files = [('/usr/share/man/man1', ['vmam.1'])],
     scripts=['bin/vmam']
 )
