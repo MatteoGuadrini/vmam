@@ -70,6 +70,10 @@ Usage for command line:
             $> vmam mac --add 000018ff12dd --vlan-id 110
             Add new mac-address user with VLAN 110, based on standard configuration file: /etc/vmam/vmam.cfg
 
+            $> vmam mac --add 000018ff12dd --vlan-id 111
+            Modify new or existing mac-address user with VLAN 111, based on standard configuration
+            file: /etc/vmam/vmam.cfg
+
             --description/-D {parameter}: Add description on created mac-address
 
             $> vmam mac --add 000018ff12dd --vlan-id 110 --description "My personal linux"
@@ -90,10 +94,6 @@ Usage for command line:
             $> vmam mac --remove 000018ff12dd --force
             Force remove mac-address user 000018ff12dd, based on standard configuration file: /etc/vmam/vmam.cfg
 
-            $> vmam mac --add 000018ff12dd --vlan-id 111
-            Modify new or existing mac-address user with VLAN 111, based on standard configuration
-            file: /etc/vmam/vmam.cfg
-
             --vlan-id/-i {parameter}: Specify a specific VLAN-id
 
             $> vmam mac --add 000018ff12dd --vlan-id 100
@@ -103,6 +103,10 @@ Usage for command line:
 
             $> vmam mac --remove 000018ff12dd --config-file /opt/vlan-office/office.cfg
             Remove mac-address user 000018ff12dd, based on custom configuration file: /opt/vlan-office/office.cfg
+
+        --version/-V {option}: Print version and exit
+
+        --verbose/-v {option}: Print and log verbose information, for debugging
 
 Usage like a module:
 
@@ -189,7 +193,7 @@ def check_module(module):
 # endregion
 
 # region Global variable
-VERSION = '1.3.1'
+VERSION = '1.3.2'
 __all__ = ['logwriter', 'debugger', 'confirm', 'read_config', 'get_platform', 'new_config', 'bind_ldap',
            'check_connection', 'check_config', 'connect_ldap', 'unbind_ldap', 'query_ldap', 'check_ldap_version',
            'new_user', 'set_user', 'delete_user', 'set_user_password', 'add_to_group', 'remove_to_group',

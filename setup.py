@@ -26,7 +26,7 @@ from os import path
 
 from setuptools import setup
 
-VERSION = '1.3.1'
+VERSION = '1.3.2'
 
 if not os.path.exists('bin'):
     os.makedirs('bin')
@@ -53,5 +53,6 @@ setup(
     ],
     long_description=long_description,
     long_description_content_type='text/markdown',
+    data_files=[('/usr/share/man/man1', ['vmam.1'])],
     scripts=['bin/vmam']
 )

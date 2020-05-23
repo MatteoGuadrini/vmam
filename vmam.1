@@ -1,0 +1,115 @@
+.\" Manpage for vmam.
+.\" Contact matteo.guadrini@hotmail.it to correct errors or typos.
+.TH man 1 "9 May 2020" "1.3.2" "vmam man page"
+.SH NAME
+vmam \- VLAN Mac\-address Authentication Manager
+.SH SYNOPSIS
+vmam [action] [parameter] [options]
+
+vmam [-h] [--verbose] [--version] {config,start,mac} ...
+
+.SH DESCRIPTION
+vmam is a command line tool which allows the management and maintenance of the mac-addresses
+that access the network under a specific domain and a specific VLAN, through LDAP authentication.
+This is based on RFC-3579(https://tools.ietf.org/html/rfc3579#section-2.1).
+.SH PARAMETER
+.TP
+action:
+  valid action
+
+  {config,start,mac}  available actions for vmam command
+    config            vmam configuration options
+    start             vmam automatic process options
+    mac               vmam manual process options
+
+.B config
+Configuration command for vmam environment [action]
+
+	--new/-n [parameter]: Instruction to create a new configuration file. By specifying a path, it creates the
+        file in the indicated path. The default path is /etc/vmam/vmam.cfg
+
+    --get-cmd/-g [parameter]: Instruction to obtain the appropriate commands to configure your network
+        infrastructure and radius server around the created configuration file. By specifying a path, get
+        the file in the indicated path. The default path is /etc/vmam/vmam.cfg
+
+.B start
+Automatic action for vmam environment [action]
+
+    --config-file/-c [parameter]: Specify a configuration file in a custom path (optional)
+
+    --daemon/-d [parameter]: If specified, the automatic process run in background as a daemon
+
+.B mac
+Manual action for adding, modifying, deleting and disabling of the mac-address users [action]
+
+    --add/-a [parameter]: Add a specific mac-address on LDAP with specific VLAN. See also --vlan-id/-i
+
+    --description/-D [parameter]: Add description on created mac-address
+
+    --remove/-r [parameter]: Remove a mac-address user on LDAP
+
+    --disable/-d [parameter]: Disable a mac-address user on LDAP, without removing
+
+    --force/-f [parameter]: Force remove/disable action
+
+    --vlan-id/-i [parameter]: Specify a specific VLAN-id
+
+    --config-file/-c [parameter]: Specify a configuration file in a custom path (optional)
+
+
+.B optional arguments
+[options]
+
+    -h, --help          show this help message and exit
+    --verbose, -v       enable verbosity, for debugging process.
+    --version, -V       show program's version number and exit
+
+
+.SH EXAMPLES
+    $> vmam config --new
+    Create a new configuration in a standard path: /etc/vmam/vmam.cfg
+
+    $> vmam config --get-cmd
+    It takes instructions to configure its own network and radius server structure,
+    from standard path: /etc/vmam/vmam.cfg
+
+    $> vmam start --config-file /home/arthur/vmam.cfg
+    Start automatic process based on custom path configuration file: /home/arthur/vmam.cfg
+
+    $> vmam start --daemon
+    Start automatic process in background based on standard path: /etc/vmam/vmam.cfg
+
+    $> vmam mac --add 000018ff12dd --vlan-id 110
+    Add new mac-address user with VLAN 110, based on standard configuration file: /etc/vmam/vmam.cfg
+
+    $> vmam mac --add 000018ff12dd --vlan-id 111
+    Modify new or existing mac-address user with VLAN 111, based on standard configuration
+    file: /etc/vmam/vmam.cfg
+
+    $> vmam mac --add 000018ff12dd --vlan-id 110 --description "My personal linux"
+    Add new mac-address user with VLAN 110, based on standard configuration file: /etc/vmam/vmam.cfg,
+    with description "My personal linux"
+
+    $> vmam mac --remove 000018ff12dd
+    Remove mac-address user 000018ff12dd, based on standard configuration file: /etc/vmam/vmam.cfg
+
+    $> vmam mac --disable 000018ff12dd
+    Disable mac-address user 000018ff12dd, based on standard configuration file: /etc/vmam/vmam.cfg
+
+    $> vmam mac --remove 000018ff12dd --force
+    Force remove mac-address user 000018ff12dd, based on standard configuration file: /etc/vmam/vmam.cfg
+
+    $> vmam mac --remove 000018ff12dd --config-file /opt/vlan-office/office.cfg
+    Remove mac-address user 000018ff12dd, based on custom configuration file: /opt/vlan-office/office.cfg
+
+.SH SEE ALSO
+Full documentation is here:
+https://vmam.readthedocs.io/en/latest/
+Or module usage:
+pydoc vmam
+.SH BUGS
+No known bugs.
+.SH AUTHOR
+Matteo Guadrini <matteo.guadrini@hotmail.it>
+.SH COPYRIGHT
+(c) Matteo Guadrini. All rights reserved.
