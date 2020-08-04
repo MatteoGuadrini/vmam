@@ -92,7 +92,7 @@ Read these RFCs carefully ([RFC 3580](https://tools.ietf.org/html/rfc3580), [RFC
 [RFC 2865](https://tools.ietf.org/html/rfc2865), [RFC 3579](https://tools.ietf.org/html/rfc3579)) and choose a radius server based on your architecture 
 ([freeradius](https://freeradius.org/) or [Microsoft Radius](https://docs.microsoft.com/it-it/windows-server/networking/technologies/nps/nps-top)).
 
-Once the network equipment and radius server have been configured, create ldap groups corresponding to the VLAn that you want to manage. 
+Once the network equipment and radius server have been configured, create ldap groups corresponding to the VLAN that you want to manage. 
 
 e.g .: *VLAN_ID 100 on switch to group LDAP VLAN100.*
 
@@ -104,7 +104,7 @@ You can configure _vmam_ before configuring your network architecture.
 
 You can start creating a default file by typing: `vmam config --new`
 
-This will create a standard configuration file under `/etc/vmam/vmam.conf` on Unix and `C:\vmam\vmam.conf` on Windows.
+This will create a standard configuration file under `/etc/vmam/vmam.conf`.
 
 Now it will be enough, edit and customize the configuration file following the documentation as guidelines. Once done, type `vmam config --get-cmd`
 
