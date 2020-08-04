@@ -193,7 +193,7 @@ def check_module(module):
 # endregion
 
 # region Global variable
-VERSION = '1.3.2'
+VERSION = '1.3.3'
 __all__ = ['logwriter', 'debugger', 'confirm', 'read_config', 'get_platform', 'new_config', 'bind_ldap',
            'check_connection', 'check_config', 'connect_ldap', 'unbind_ldap', 'query_ldap', 'check_ldap_version',
            'new_user', 'set_user', 'delete_user', 'set_user_password', 'add_to_group', 'remove_to_group',
@@ -936,8 +936,8 @@ def format_mac(mac_address, mac_format='none'):
 
     .. testcode::
 
-        >>> mac = format_mac('1A2b3c4D5E6F', 'dot')
-        >>> print(mac)
+        >>> m = format_mac('1A2b3c4D5E6F', 'dot')
+        >>> print(m)
     """
     # Set format
     form = {
@@ -1020,8 +1020,8 @@ def get_mac_address(protocol, *exclude):
     .. testcode::
 
         >>> cl = connect_client('host1', r'domain\\user', 'password')
-        >>> mac = get_mac_address(cl)
-        >>> print(mac)
+        >>> m = get_mac_address(cl)
+        >>> print(m)
     """
     # Get all mac-address on machine
     macs = list(run_command(protocol, 'getmac /fo csv /v'))
@@ -1054,8 +1054,8 @@ def get_client_user(protocol):
     .. testcode::
 
         >>> cl = connect_client('host1', r'domain\\user', 'password')
-        >>> user = get_client_user(cl)
-        >>> print(user)
+        >>> u = get_client_user(cl)
+        >>> print(u)
     """
     # Get the users connected
     users = list(run_command(protocol, 'quser'))
@@ -1629,7 +1629,8 @@ if __name__ == '__main__':
                 ','.join(cfg['LDAP']['servers']), cfg['LDAP']['bind_user']))
             bind_start = bind_ldap(srv, cfg['LDAP']['bind_user'], cfg['LDAP']['bind_pwd'], tls=cfg['LDAP']['tls'])
         # Get computers from domain controllers
-        debugger(arguments.verbose, wt, 'Convert datetime format to filetime format for computer query')
+        debugger(arguments.verbose, wt, 'Convert datetime format to filetime format for computer query: {0} ago'.format(
+            cfg['LDAP']['time_computer_sync']))
         td = get_time_sync(cfg['LDAP']['time_computer_sync'])
         ft = datetime_to_filetime(td)
         # Query LDAP to take all computer accounts based on filetime
@@ -1644,7 +1645,8 @@ if __name__ == '__main__':
                 debugger(arguments.verbose, wt, 'Try connect to {0} via WINRM'.format(c_attribute['name']))
                 if check_connection(c_attribute['name'], 5985):
                     try:
-                        debugger(arguments.verbose, wt, 'Connect to {0} via WINRM'.format(c_attribute['name']))
+                        debugger(arguments.verbose, wt, 'Connected successful to {0} via WINRM'.format(
+                            c_attribute['name']))
                         client = connect_client(c_attribute['name'], cfg['VMAM']['winrm_user'],
                                                 cfg['VMAM']['winrm_pwd'])
                         # Run the commands
@@ -1661,14 +1663,14 @@ if __name__ == '__main__':
                                     c_attribute['name']))
                                 wt.warning('There are no mac-addresses present on {0} computer'.format(
                                     c_attribute['name']))
-                                continue
                             # Get the last user of the computer
-                            debugger(arguments.verbose, wt, 'Get users of {0}'.format(c_attribute['name']))
+                            debugger(arguments.verbose, wt, 'Get logged in users of {0}'.format(c_attribute['name']))
                             users = get_client_user(client)
                             # Check user list
                             if not users:
-                                print('WARNING: No user logged in on {0} computer'.format(c_attribute['name']))
-                                wt.warning('No user logged in on {0} computer'.format(c_attribute['name']))
+                                print('WARNING: There are no logged in users on {0} computer'.format(
+                                    c_attribute['name']))
+                                wt.warning('There are no logged in users on {0} computer'.format(c_attribute['name']))
                                 continue
                             # Search user on LDAP server
                             try:
@@ -1811,11 +1813,14 @@ if __name__ == '__main__':
                         wt.error(err)
                         continue
                 else:
-                    debugger(arguments.verbose, wt, 'Computer {0} unreachable'.format(c_attribute['name']))
+                    debugger(arguments.verbose, wt, 'Computer {0} is unreachable'.format(c_attribute['name']))
         if cfg['VMAM'].get('remove_process'):
             debugger(arguments.verbose, wt, 'Start disable/delete process')
             # Get old mac-address user
-            debugger(arguments.verbose, wt, 'Convert datetime format to filetime format for mac-address user query')
+            debugger(arguments.verbose, wt,
+                     'Convert datetime format to filetime format for mac-address user query. mac ttl: {0}'.format(
+                         cfg['LDAP']['mac_user_ttl']
+                     ))
             # Get value for soft deletion
             soft_deletion = cfg['VMAM']['soft_deletion']
             td = get_time_sync(cfg['LDAP']['mac_user_ttl'])
@@ -1836,8 +1841,6 @@ if __name__ == '__main__':
                                 str(datetime.date.today()), str(last_access.date()),
                                 mac.get('attributes').get('description')
                             )
-                            # Set new description
-
                             # Disable mac-address
                             cli_disable_mac(cfg, bind_start, mac.get('attributes').get('samaccountname'), wt, arguments,
                                             description=desc)
