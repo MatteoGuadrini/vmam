@@ -26,7 +26,7 @@ from os import path
 
 from setuptools import setup
 
-VERSION = '1.3.2'
+VERSION = '1.3.3'
 
 if not os.path.exists('bin'):
     os.makedirs('bin')
