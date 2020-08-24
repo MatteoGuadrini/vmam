@@ -1747,57 +1747,60 @@ if __name__ == '__main__':
                                                         debugger(arguments.verbose, wt,
                                                                  'No "user" in configuration file: LDAP->add_group_type'
                                                                  )
-                                                    # Assign computer to VLAN groups
-                                                    if 'computer' in cfg['LDAP']['add_group_type']:
-                                                        g = query_ldap(bind_start, cfg['LDAP']['user_base_dn'],
-                                                                       ['member', 'distinguishedname'],
-                                                                       objectclass='group',
-                                                                       name=cfg['VMAM']['vlan_group_id'][vid])
-                                                        gdn = g[0].get('dn')
-                                                        cdn = c_attribute.get('distinguishedname')
-                                                        # Add VLAN LDAP group to computer account
-                                                        if cdn not in g[0]['attributes']['member']:
-                                                            add_to_group(bind_start, gdn, cdn)
-                                                            print('Add VLAN group {0} to computer {1}'.format(gdn, cdn))
-                                                            wt.info(
-                                                                'Add VLAN group {0} to computer {1}'.format(gdn, cdn))
-                                                        else:
-                                                            debugger(arguments.verbose, wt,
-                                                                     'VLAN group {0} already added to '
-                                                                     'computer {1}'.format(
-                                                                         cfg['VMAM']['vlan_group_id'][vid], cdn))
-                                                        # Add description to computer account
-                                                        set_user(bind_start, c_attribute.get('distinguishedname'),
-                                                                 description='User: {0} Mac: {1}'.format(
-                                                                     users[0][0],
-                                                                     ' '.join(
-                                                                         [format_mac(mac, cfg['VMAM']['mac_format'])
-                                                                          for mac in macs]
-                                                                     )
-                                                                 ))
-                                                        # Remove other VLAN LDAP group
-                                                        for vgkey, vgvalue in cfg['VMAM']['vlan_group_id'].items():
-                                                            # Check if VLAN-ID isn't equal
-                                                            if vgkey != vid:
-                                                                g = query_ldap(bind_start, cfg['LDAP']['user_base_dn'],
-                                                                               ['member', 'distinguishedname'],
-                                                                               objectclass='group', name=vgvalue)
-                                                                gdn = g[0]['dn']
-                                                                gmember = g[0]['attributes']['member']
-                                                                # Remove member of group
-                                                                if cdn in gmember:
-                                                                    remove_to_group(bind_start, gdn, cdn)
-                                                                    print(
-                                                                        'Remove VLAN group {0} to computer {1}'.format(
-                                                                            gdn, cdn))
-                                                                    wt.info(
-                                                                        'Remove VLAN group {0} to computer {1}'.format(
-                                                                            gdn, cdn))
+                                                # Assign computer to VLAN groups
+                                                if 'computer' in cfg['LDAP']['add_group_type']:
+                                                    g = query_ldap(bind_start, cfg['LDAP']['user_base_dn'],
+                                                                   ['member', 'distinguishedname'],
+                                                                   objectclass='group',
+                                                                   name=cfg['VMAM']['vlan_group_id'][vid])
+                                                    gdn = g[0].get('dn')
+                                                    cdn = c_attribute.get('distinguishedname')
+                                                    # Add VLAN LDAP group to computer account
+                                                    if cdn not in g[0]['attributes']['member']:
+                                                        add_to_group(bind_start, gdn, cdn)
+                                                        print('Add VLAN group {0} to computer {1}'.format(gdn,
+                                                                                                          cdn))
+                                                        wt.info(
+                                                            'Add VLAN group {0} to computer {1}'.format(gdn,
+                                                                                                        cdn))
                                                     else:
                                                         debugger(arguments.verbose, wt,
-                                                                 'No "computer" in configuration file: '
-                                                                 'LDAP->add_group_type'
+                                                                 'VLAN group {0} already added to '
+                                                                 'computer {1}'.format(
+                                                                     cfg['VMAM']['vlan_group_id'][vid], cdn))
+                                                    # Add description to computer account
+                                                    set_user(bind_start, c_attribute.get('distinguishedname'),
+                                                             description='User: {0} Mac: {1}'.format(
+                                                                 users[0][0],
+                                                                 ' '.join(
+                                                                     [format_mac(mac, cfg['VMAM']['mac_format'])
+                                                                      for mac in macs]
                                                                  )
+                                                             ))
+                                                    # Remove other VLAN LDAP group
+                                                    for vgkey, vgvalue in cfg['VMAM']['vlan_group_id'].items():
+                                                        # Check if VLAN-ID isn't equal
+                                                        if vgkey != vid:
+                                                            g = query_ldap(bind_start,
+                                                                           cfg['LDAP']['user_base_dn'],
+                                                                           ['member', 'distinguishedname'],
+                                                                           objectclass='group', name=vgvalue)
+                                                            gdn = g[0]['dn']
+                                                            gmember = g[0]['attributes']['member']
+                                                            # Remove member of group
+                                                            if cdn in gmember:
+                                                                remove_to_group(bind_start, gdn, cdn)
+                                                                print(
+                                                                    'Remove VLAN group {0} to computer {1}'.format(
+                                                                        gdn, cdn))
+                                                                wt.info(
+                                                                    'Remove VLAN group {0} to computer {1}'.format(
+                                                                        gdn, cdn))
+                                                else:
+                                                    debugger(arguments.verbose, wt,
+                                                             'No "computer" in configuration file: '
+                                                             'LDAP->add_group_type'
+                                                             )
                                             else:
                                                 continue
                             except Exception as err:
