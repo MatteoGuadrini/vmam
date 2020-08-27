@@ -238,7 +238,7 @@ def logwriter(logfile):
     _format = logging.Formatter('%(asctime)s %(levelname)-4s %(message)s')
     # Folder exists?
     leaf = os.path.split(logfile)
-    if not leaf[0]:
+    if not os.path.exists(leaf[0]):
         try:
             os.makedirs(leaf[0])
         except Exception as err:
@@ -419,7 +419,7 @@ def new_config(path=(get_platform()['conf_default'])):
     """
     # Folder exists?
     leaf = os.path.split(path)
-    if not leaf[0]:
+    if not os.path.exists(leaf[0]):
         try:
             os.makedirs(leaf[0])
         except Exception as err:
@@ -701,13 +701,12 @@ def new_user(bind_object, username, **attributes):
 
         >>> conn = connect_ldap(['dc1.foo.bar'])
         >>> bind = bind_ldap(conn, r'domain\\user', 'password', tls=True)
-        >>> new_user(bind, 'CN=ex_user1,OU=User_ex,DC=foo,DC=bar', givenName='User 1', sn='Example')
+        >>> new_user(bind, 'CN=ex_user1,OU=User_ex,DC=foo,DC=bar', objectClass='user', givenName='User 1', sn='Example')
     """
     # Create user
     bind_object.add(
         username,
-        ['top', 'person', 'organizationalPerson', 'user'],
-        attributes
+        attributes=attributes
     )
     return bind_object.result
 
@@ -776,16 +775,16 @@ def set_user_password(bind_object, username, password, *, ldap_version='LDAP'):
     """
     # Set password
     if ldap_version == 'LDAP':
-        bind_object.extend.StandardExtendedOperations.modify_password(username, new_password=password,
-                                                                      old_password=None)
+        bind_object.extend.standard.modify_password(username, new_password=password,
+                                                    old_password=None)
     elif ldap_version == 'MS-LDAP':
         bind_object.extend.microsoft.modify_password(username, new_password=password, old_password=None)
     elif ldap_version == 'N-LDAP':
         bind_object.extend.NovellExtendedOperations.set_universal_password(username, new_password=password,
                                                                            old_password=None)
     else:
-        bind_object.extend.StandardExtendedOperations.modify_password(username, new_password=password,
-                                                                      old_password=None)
+        bind_object.extend.standard.modify_password(username, new_password=password,
+                                                    old_password=None)
 
 
 def add_to_group(bind_object, groupname, members):
@@ -1234,17 +1233,49 @@ if __name__ == '__main__':
         # Query: check if mac-address exist
         debugger(arguments.verbose, logger, 'Exist mac-address {0} on LDAP servers {1}?'.format(
             mac, ','.join(config['LDAP']['servers'])))
-        ret = query_ldap(bind, config['LDAP']['mac_user_base_dn'], ['samaccountname', 'description'],
-                         samaccountname=mac)
+        # Create the attribute dictionary
+        if ldap_v == 'MS-LDAP':
+            login_attr = 'samaccountname'
+            user_class = 'user'
+            group_class = 'group'
+            group_name = 'name'
+            u_search_attributes = ['memberof']
+            g_search_attributes = ['member', 'distinguishedname']
+            attrs = {'objectClass': ['top', 'person', 'organizationalPerson', 'user'],
+                     'givenname': 'mac-address',
+                     'sn': mac,
+                     login_attr: mac,
+                     'userprincipalname': '{0}@{1}'.format(mac, config['LDAP']['domain']),
+                     'description': description}
+        else:
+            # Get uidNumber and gidNumber
+            ug = query_ldap(bind, config['LDAP']['mac_user_base_dn'], ['uidNumber', 'gidNumber'], uidNumber='*')
+            if ug:
+                uid = ug[-1]['attributes']['uidNumber'] + 1
+                gid = ug[-1]['attributes']['gidNumber'] + 1
+            else:
+                uid = 1
+                gid = 1
+            login_attr = 'uid'
+            user_class = 'inetorgperson'
+            group_class = 'posixgroup'
+            group_name = 'cn'
+            u_search_attributes = ['memberof']
+            g_search_attributes = ['member', 'dn']
+            attrs = {'objectClass': ['top', 'person', 'organizationalperson', 'inetorgperson', 'posixaccount'],
+                     'givenname': 'mac-address',
+                     'sn': mac,
+                     login_attr: mac,
+                     'cn': mac,
+                     'homeDirectory': '/tmp/{0}'.format(mac),
+                     'gidNumber': gid,
+                     'uidNumber': uid,
+                     'description': description}
+        ret = query_ldap(bind, config['LDAP']['mac_user_base_dn'], [login_attr, 'description'],
+                         **{login_attr: mac})
         if not ret or not ret[0].get('dn'):
             debugger(arguments.verbose, logger, 'Mac-address {0} not exists on LDAP servers {1}'.format(
                 mac, ','.join(config['LDAP']['servers'])))
-            # Add mac-address to LDAP
-            attrs = {'givenname': 'mac-address',
-                     'sn': mac,
-                     'samaccountname': mac,
-                     'userprincipalname': '{0}@{1}'.format(mac, config['LDAP']['domain']),
-                     'description': description}
             # Check write_attrib on configuration file
             vflag = 'VMAM_MANUAL {0}'.format(VERSION) if arguments.action == 'mac' else 'VMAM_AUTO {0}'.format(VERSION)
             if config['LDAP']['write_attrib']:
@@ -1280,17 +1311,18 @@ if __name__ == '__main__':
             for key, value in config['VMAM']['vlan_group_id'].items():
                 # Check exist VLAN-ID in configuration file
                 if vgroup == key:
-                    g = query_ldap(bind, config['LDAP']['user_base_dn'], ['member', 'distinguishedname'],
-                                   objectclass='group', name=value)
-                    u = query_ldap(bind, config['LDAP']['mac_user_base_dn'], ['memberof'],
-                                   objectclass='user', name=mac)
-                    gdn = g[0]['dn']
-                    umember = u[0]['attributes']['memberof']
+                    g = query_ldap(bind, config['LDAP']['user_base_dn'], g_search_attributes,
+                                   **{'objectclass': group_class, group_name: value})
+                    u = query_ldap(bind, config['LDAP']['mac_user_base_dn'], u_search_attributes,
+                                   **{'objectclass': user_class, login_attr: mac})
+                    gdn = g[0]['dn'] if g else None
+                    umember = u[0]['attributes']['memberof'] if u else []
                     # Add VLAN LDAP group to user mac address
                     if gdn not in umember:
-                        add_to_group(bind, gdn, dn)
-                        print('Add VLAN group {0} to user {1}'.format(gdn, dn))
-                        logger.info('Add VLAN group {0} to user {1}'.format(gdn, dn))
+                        if gdn:
+                            add_to_group(bind, gdn, dn)
+                            print('Add VLAN group {0} to user {1}'.format(gdn, dn))
+                            logger.info('Add VLAN group {0} to user {1}'.format(gdn, dn))
                     else:
                         debugger(arguments.verbose, logger, 'VLAN group {0} already added to user {1}'.format(
                             config['VMAM']['vlan_group_id'][vgroup], dn))
@@ -1305,24 +1337,26 @@ if __name__ == '__main__':
             exit(16)
         # Custom group
         try:
-            debugger(arguments.verbose, logger, 'Verify custom groups {0} to user {1}'.format(
-                ','.join(config['LDAP']['other_group']), dn))
-            for group in config['LDAP']['other_group']:
-                g = query_ldap(bind, config['LDAP']['user_base_dn'], ['member', 'distinguishedname'],
-                               objectclass='group', name=group)
-                u = query_ldap(bind, config['LDAP']['mac_user_base_dn'], ['memberof'],
-                               objectclass='user', name=mac)
-                gdn = g[0]['dn']
-                umember = u[0]['attributes']['memberof']
-                # Add VLAN LDAP group to user mac address
-                if gdn not in umember:
-                    add_to_group(bind, gdn, dn)
-                    print('Add custom groups {0} to user {1}'.format(gdn, dn))
-                    logger.info('Add custom groups {0} to user {1}'.format(gdn, dn))
-                else:
-                    debugger(arguments.verbose, logger, 'Custom groups {0} already added to user {1}'.format(
-                        ','.join(config['LDAP']['other_group']), dn))
-                break
+            if config['LDAP']['other_group']:
+                debugger(arguments.verbose, logger, 'Verify custom groups {0} to user {1}'.format(
+                    ','.join(config['LDAP']['other_group']), dn))
+                for group in config['LDAP']['other_group']:
+                    g = query_ldap(bind, config['LDAP']['user_base_dn'], g_search_attributes,
+                                   **{'objectclass': group_class, group_name: group})
+                    u = query_ldap(bind, config['LDAP']['mac_user_base_dn'], u_search_attributes,
+                                   **{'objectclass': user_class, login_attr: mac})
+                    gdn = g[0]['dn'] if g else None
+                    umember = u[0]['attributes']['memberof'] if u else []
+                    # Add VLAN LDAP group to user mac address
+                    if gdn not in umember:
+                        if gdn:
+                            add_to_group(bind, gdn, dn)
+                            print('Add custom groups {0} to user {1}'.format(gdn, dn))
+                            logger.info('Add custom groups {0} to user {1}'.format(gdn, dn))
+                    else:
+                        debugger(arguments.verbose, logger, 'Custom groups {0} already added to user {1}'.format(
+                            ','.join(config['LDAP']['other_group']), dn))
+                    break
         except Exception as err:
             print('ERROR:', err)
             logger.error(err)
@@ -1334,17 +1368,18 @@ if __name__ == '__main__':
             for key, value in config['VMAM']['vlan_group_id'].items():
                 # Check if VLAN-ID isn't equal
                 if vgroup != key:
-                    g = query_ldap(bind, config['LDAP']['user_base_dn'], ['member', 'distinguishedname'],
-                                   objectclass='group', name=value)
-                    u = query_ldap(bind, config['LDAP']['mac_user_base_dn'], ['memberof'],
-                                   objectclass='user', name=mac)
-                    gdn = g[0]['dn']
-                    umember = u[0]['attributes']['memberof']
+                    g = query_ldap(bind, config['LDAP']['user_base_dn'], g_search_attributes,
+                                   **{'objectclass': group_class, group_name: value})
+                    u = query_ldap(bind, config['LDAP']['mac_user_base_dn'], u_search_attributes,
+                                   **{'objectclass': user_class, login_attr: mac})
+                    gdn = g[0]['dn'] if g else None
+                    umember = u[0]['attributes']['memberof'] if u else []
                     # Remove member of group
                     if gdn in umember:
-                        remove_to_group(bind, gdn, dn)
-                        print('Remove VLAN group {0} to user {1}'.format(gdn, dn))
-                        logger.info('Remove VLAN group {0} to user {1}'.format(gdn, dn))
+                        if gdn:
+                            remove_to_group(bind, gdn, dn)
+                            print('Remove VLAN group {0} to user {1}'.format(gdn, dn))
+                            logger.info('Remove VLAN group {0} to user {1}'.format(gdn, dn))
         except Exception as err:
             print('ERROR:', err)
             logger.error(err)
@@ -1366,6 +1401,8 @@ if __name__ == '__main__':
         except Exception as err:
             print('ERROR:', err)
             logger.error(err)
+            import traceback
+            traceback.print_last()
             exit(9)
         if not exist:
             print('Mac-address user {0} successfully created'.format(mac))
