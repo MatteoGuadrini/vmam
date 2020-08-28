@@ -1262,7 +1262,8 @@ if __name__ == '__main__':
             group_name = 'cn'
             u_search_attributes = ['memberof']
             g_search_attributes = ['member', 'dn']
-            attrs = {'objectClass': ['top', 'person', 'organizationalperson', 'inetorgperson', 'posixaccount'],
+            attrs = {'objectClass': ['top', 'person', 'organizationalPerson', 'inetOrgPerson',
+                                     'posixAccount', 'krbPrincipalAux'],
                      'givenname': 'mac-address',
                      'sn': mac,
                      login_attr: mac,
@@ -1270,6 +1271,7 @@ if __name__ == '__main__':
                      'homeDirectory': '/tmp/{0}'.format(mac),
                      'gidNumber': gid,
                      'uidNumber': uid,
+                     'krbPrincipalname': '{0}@{1}'.format(mac, config['LDAP']['domain']),
                      'description': description}
         ret = query_ldap(bind, config['LDAP']['mac_user_base_dn'], [login_attr, 'description'],
                          **{login_attr: mac})
