@@ -1304,6 +1304,11 @@ if __name__ == '__main__':
             # Modify description
             if description not in ret[0]['attributes'].get('description'):
                 set_user(bind, dn, description=description)
+            # Re-enable user if has been disabled
+            if ldap_v == 'MS-LDAP':
+                set_user(bind, dn, pwdLastSet=-1, userAccountControl=66048)
+            else:
+                set_user(bind, dn, nsaccountlock='False')
             exist = True
         # Add VLAN and custom LDAP group
         # VLAN-ID group
