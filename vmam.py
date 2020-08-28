@@ -1431,8 +1431,10 @@ if __name__ == '__main__':
         # Query: check if mac-address exist
         debugger(arguments.verbose, logger, 'Exist mac-address {0} on LDAP servers {1}?'.format(
             mac, ','.join(config['LDAP']['servers'])))
-        ret = query_ldap(bind, config['LDAP']['mac_user_base_dn'], ['samaccountname', 'description'],
-                         samaccountname=mac)
+        login_attr = 'samaccountname' if ldap_v == 'MS-LDAP' else 'uid'
+        u_search_attributes = ['samaccountname', 'description'] if ldap_v == 'MS-LDAP' else ['uid', 'description']
+        ret = query_ldap(bind, config['LDAP']['mac_user_base_dn'], u_search_attributes,
+                         **{login_attr: mac})
         if ret and ret[0].get('dn'):
             force = confirm('Do you want to disable {0} mac-address?'.format(mac)) if not arguments.force else True
             if force:
