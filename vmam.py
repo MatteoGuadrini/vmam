@@ -199,7 +199,7 @@ __all__ = ['logwriter', 'debugger', 'confirm', 'read_config', 'get_platform', 'n
            'new_user', 'set_user', 'delete_user', 'set_user_password', 'add_to_group', 'remove_to_group',
            'filetime_to_datetime', 'datetime_to_filetime', 'get_time_sync', 'string_to_datetime', 'format_mac',
            'connect_client', 'run_command', 'get_mac_address', 'get_client_user', 'check_vlan_attributes', 'VERSION',
-           'get_mac_from_file']
+           'get_mac_from_file', 'timestamp_to_datetime']
 bind_start = False
 
 
@@ -869,6 +869,21 @@ def datetime_to_filetime(date_time):
     return filetime + (date_time.microsecond * 10)
 
 
+def timestamp_to_datetime(timestamp):
+    """
+    Convert Unix timestamp LDAP to datetime
+
+    :param timestamp: timestamp number (milliseconds)
+    :return: datetime object
+
+    .. testcode::
+
+        >>> dt = timestamp_to_datetime(1333234800)
+        >>> print(dt)
+    """
+    return datetime.datetime.fromtimestamp(timestamp)
+
+
 def get_time_sync(timedelta):
     """
     It takes the date for synchronization
@@ -1408,8 +1423,6 @@ if __name__ == '__main__':
         except Exception as err:
             print('ERROR:', err)
             logger.error(err)
-            import traceback
-            traceback.print_last()
             exit(9)
         if not exist:
             print('Mac-address user {0} successfully created'.format(mac))
@@ -1699,7 +1712,6 @@ if __name__ == '__main__':
                                **host_search_attributes)
         # Check if there are updated computers
         if computers:
-            c_attributes = [computer.get('attributes') for computer in computers if computer.get('attributes')]
             for c_attribute in computers:
                 # Connection to the client via WINRM protocol
                 if isinstance(c_attribute['attributes'][hostname_attr], list):
