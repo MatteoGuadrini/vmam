@@ -199,7 +199,7 @@ __all__ = ['logwriter', 'debugger', 'confirm', 'read_config', 'get_platform', 'n
            'new_user', 'set_user', 'delete_user', 'set_user_password', 'add_to_group', 'remove_to_group',
            'filetime_to_datetime', 'datetime_to_filetime', 'get_time_sync', 'string_to_datetime', 'format_mac',
            'connect_client', 'run_command', 'get_mac_address', 'get_client_user', 'check_vlan_attributes', 'VERSION',
-           'get_mac_from_file', 'timestamp_to_datetime']
+           'get_mac_from_file', 'timestamp_to_datetime', 'datetime_to_timestamp']
 bind_start = False
 
 
@@ -882,6 +882,21 @@ def timestamp_to_datetime(timestamp):
         >>> print(dt)
     """
     return datetime.datetime.fromtimestamp(timestamp)
+
+
+def datetime_to_timestamp(date_time):
+    """
+    Convert datetime to LDAP Unix timestamp
+
+    :param date_time: datetime object
+    :return: timestamp number
+
+    .. testcode::
+
+        >>> ft = datetime_to_timestamp(datetime.datetime(1986, 1, 25))
+        >>> print(ft)
+    """
+    return int(datetime.datetime.timestamp(date_time))
 
 
 def get_time_sync(timedelta):
