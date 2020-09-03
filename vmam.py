@@ -1717,18 +1717,23 @@ if __name__ == '__main__':
             user_get_attributes = ['samaccountname']
             user_class_attr = 'person'
             user_login_attr = 'samaccountname'
+            group_get_attributes = ['member']
+            group_class_attr = 'group'
+            group_login_attr = 'name'
         else:
             debugger(arguments.verbose, wt,
                      'Convert datetime format to timestamp format for computer query: {0} ago'.format(
                          cfg['LDAP']['time_computer_sync']))
             ts = datetime_to_timestamp(td)
-            print(timestamp_to_datetime(ts))
             host_search_attributes = {'objectClass': 'nshost', 'krbLastPwdChange': ts}
             host_get_attributes = ['fqdn', 'krbLastPwdChange']
             hostname_attr = 'fqdn'
             user_get_attributes = ['uid']
             user_class_attr = 'inetorgperson'
             user_login_attr = 'uid'
+            group_get_attributes = ['member']
+            group_class_attr = 'posixgroup'
+            group_login_attr = 'cn'
         # Query LDAP to take all computer accounts
         computers = query_ldap(bind_start, cfg['LDAP']['computer_base_dn'], host_get_attributes, comp='>=',
                                **host_search_attributes)
@@ -1777,7 +1782,7 @@ if __name__ == '__main__':
                                 debugger(arguments.verbose, wt, 'Search user {0} on LDAP'.format(users[0][0]))
                                 user = query_ldap(bind_start, cfg['LDAP']['user_base_dn'],
                                                   cfg['LDAP']['verify_attrib'],
-                                                  objectcategory='person', samaccountname=users[0][0])
+                                                  **{'objectclass': user_class_attr, user_login_attr: users[0][0]})
                                 # Check the match of the attributes for the creation of the mac-address
                                 if user and user[0].get('attributes'):
                                     debugger(arguments.verbose, wt, 'Check the match of the attributes for the '
@@ -1850,9 +1855,10 @@ if __name__ == '__main__':
                                                 # Assign computer to VLAN groups
                                                 if 'computer' in cfg['LDAP']['add_group_type']:
                                                     g = query_ldap(bind_start, cfg['LDAP']['user_base_dn'],
-                                                                   ['member', 'distinguishedname'],
-                                                                   objectclass='group',
-                                                                   name=cfg['VMAM']['vlan_group_id'][vid])
+                                                                   group_get_attributes,
+                                                                   **{'objectclass': group_class_attr,
+                                                                      group_login_attr:
+                                                                          cfg['VMAM']['vlan_group_id'][vid]})
                                                     gdn = g[0].get('dn')
                                                     cdn = c_attribute.get('dn')
                                                     # Add VLAN LDAP group to computer account
@@ -1883,8 +1889,9 @@ if __name__ == '__main__':
                                                         if vgkey != vid:
                                                             g = query_ldap(bind_start,
                                                                            cfg['LDAP']['user_base_dn'],
-                                                                           ['member', 'distinguishedname'],
-                                                                           objectclass='group', name=vgvalue)
+                                                                           group_get_attributes,
+                                                                           **{'objectclass': group_class_attr,
+                                                                              group_login_attr: vgvalue})
                                                             gdn = g[0]['dn']
                                                             gmember = g[0]['attributes']['member']
                                                             # Remove member of group
