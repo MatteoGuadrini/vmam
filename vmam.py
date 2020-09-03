@@ -871,32 +871,32 @@ def datetime_to_filetime(date_time):
 
 def timestamp_to_datetime(timestamp):
     """
-    Convert Unix timestamp LDAP to datetime
+    Convert LDAP Kerberos timestamp LDAP to datetime
 
-    :param timestamp: timestamp number (milliseconds)
+    :param timestamp: kerberos timestamp string
     :return: datetime object
 
     .. testcode::
 
-        >>> dt = timestamp_to_datetime(1333234800)
+        >>> dt = timestamp_to_datetime('20200903053604Z')
         >>> print(dt)
     """
-    return datetime.datetime.fromtimestamp(timestamp)
+    return datetime.datetime.strptime(timestamp, '%Y%m%d%H%M%S' + 'Z')
 
 
 def datetime_to_timestamp(date_time):
     """
-    Convert datetime to LDAP Unix timestamp
+    Convert datetime to LDAP Kerberos timestamp
 
     :param date_time: datetime object
-    :return: timestamp number
+    :return: kerberos timestamp string
 
     .. testcode::
 
         >>> ft = datetime_to_timestamp(datetime.datetime(1986, 1, 25))
         >>> print(ft)
     """
-    return int(datetime.datetime.timestamp(date_time))
+    return date_time.strftime('%Y%m%d%H%M%S' + 'Z')
 
 
 def get_time_sync(timedelta):
@@ -1712,16 +1712,23 @@ if __name__ == '__main__':
                          cfg['LDAP']['time_computer_sync']))
             ft = datetime_to_filetime(td)
             host_search_attributes = {'objectcategory': 'computer', 'lastlogon': ft}
-            host_get_attributes = ['dNSHostName', 'lastlogon', 'distinguishedname']
+            host_get_attributes = ['dNSHostName', 'lastlogon']
             hostname_attr = 'dNSHostName'
+            user_get_attributes = ['samaccountname']
+            user_class_attr = 'person'
+            user_login_attr = 'samaccountname'
         else:
             debugger(arguments.verbose, wt,
-                     'Convert datetime format to epoch format for computer query: {0} ago'.format(
+                     'Convert datetime format to timestamp format for computer query: {0} ago'.format(
                          cfg['LDAP']['time_computer_sync']))
-            ts = None
+            ts = datetime_to_timestamp(td)
+            print(timestamp_to_datetime(ts))
             host_search_attributes = {'objectClass': 'nshost', 'krbLastPwdChange': ts}
             host_get_attributes = ['fqdn', 'krbLastPwdChange']
             hostname_attr = 'fqdn'
+            user_get_attributes = ['uid']
+            user_class_attr = 'inetorgperson'
+            user_login_attr = 'uid'
         # Query LDAP to take all computer accounts
         computers = query_ldap(bind_start, cfg['LDAP']['computer_base_dn'], host_get_attributes, comp='>=',
                                **host_search_attributes)
@@ -1804,8 +1811,8 @@ if __name__ == '__main__':
                                                                                              cfg['VMAM']['mac_format'])
                                                                 ret = query_ldap(bind_start,
                                                                                  cfg['LDAP']['mac_user_base_dn'],
-                                                                                 ['samaccountname'],
-                                                                                 samaccountname=mac)
+                                                                                 user_get_attributes,
+                                                                                 **{user_login_attr: mac})
                                                                 # Now, check if mac is blacklisted
                                                                 if cli_check_list(mac, mac_list):
                                                                     print(
@@ -1824,7 +1831,7 @@ if __name__ == '__main__':
                                                                         desc = 'Blacklisted mac-address.'
                                                                         cli_disable_mac(cfg, bind_start,
                                                                                         mac.get('attributes').get(
-                                                                                            'samaccountname'), wt,
+                                                                                            user_login_attr), wt,
                                                                                         arguments,
                                                                                         description=desc)
                                                                     continue
