@@ -1279,13 +1279,13 @@ if __name__ == '__main__':
                      'description': description}
         else:
             # Get uidNumber and gidNumber
-            ug = query_ldap(bind, config['LDAP']['mac_user_base_dn'], ['uidNumber', 'gidNumber'], uidNumber='*')
+            ug = query_ldap(bind, config['LDAP']['mac_user_base_dn'], ['uidNumber'], uidNumber='*')
             if ug:
                 uid = ug[-1]['attributes']['uidNumber'] + 1
-                gid = ug[-1]['attributes']['gidNumber'] + 1
+                gid = uid + 1
             else:
                 uid = 1
-                gid = 1
+                gid = 2
             login_attr = 'uid'
             user_class = 'inetorgperson'
             group_class = 'posixgroup'
