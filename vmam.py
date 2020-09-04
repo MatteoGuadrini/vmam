@@ -1924,39 +1924,58 @@ if __name__ == '__main__':
                         continue
                 else:
                     debugger(arguments.verbose, wt, 'WINRM is not running on the computer {0}'.format(hostname))
+        # Disable/Delete process
         if cfg['VMAM'].get('remove_process'):
             debugger(arguments.verbose, wt, 'Start disable/delete process')
             # Get old mac-address user
-            debugger(arguments.verbose, wt,
-                     'Convert datetime format to filetime format for mac-address user query. mac ttl: {0}'.format(
-                         cfg['LDAP']['mac_user_ttl']
-                     ))
+            td = get_time_sync(cfg['LDAP']['mac_user_ttl'])
+            write_attrib = cfg['LDAP']['write_attrib'] if cfg['LDAP']['write_attrib'] else 'employeetype'
+            if ldap_v == 'MS-LDAP':
+                debugger(arguments.verbose, wt,
+                         'Convert datetime format to filetime format for mac-address user query. '
+                         'mac ttl: {0} ago'.format(
+                             cfg['LDAP']['mac_user_ttl']
+                         ))
+                ts = datetime_to_filetime(td)
+                mac_get_attributes = ['name', write_attrib, 'samaccountname', 'distinguishedname', 'whencreated',
+                                      'description', 'lastlogontimestamp']
+                mac_filter = {'objectClass': 'user', 'lastlogontimestamp': ts}
+                mac_created_attr = 'whencreated'
+                mac_lastlogon_attr = 'lastlogontimestamp'
+                mac_login_attr = 'samaccountname'
+            else:
+                debugger(arguments.verbose, wt,
+                         'Convert datetime format to timestamp format for mac-address user query. '
+                         'mac ttl: {0} ago'.format(cfg['LDAP']['mac_user_ttl']))
+                ts = datetime_to_timestamp(td)
+                mac_get_attributes = ['cn', write_attrib, 'uid', 'createTimestamp', 'description',
+                                      'krbLastSuccessfulAuth']
+                mac_filter = {'objectClass': 'posixAccount', 'krbLastSuccessfulAuth': ts}
+                mac_created_attr = 'createTimestamp'
+                mac_lastlogon_attr = 'krbLastSuccessfulAuth'
+                mac_login_attr = 'uid'
             # Get value for soft deletion
             soft_deletion = cfg['VMAM']['soft_deletion']
-            td = get_time_sync(cfg['LDAP']['mac_user_ttl'])
-            ft = datetime_to_filetime(td)
-            write_attrib = cfg['LDAP']['write_attrib'] if cfg['LDAP']['write_attrib'] else 'employeetype'
             macaddresses = query_ldap(bind_start, cfg['LDAP']['mac_user_base_dn'],
-                                      ['name', write_attrib, 'samaccountname', 'distinguishedname', 'whencreated',
-                                       'description'], comp='<=', objectcategory='user', lastlogontimestamp=ft)
-            if macaddresses[0].get('dn'):
+                                      mac_get_attributes, comp='<=', **mac_filter)
+            if macaddresses and macaddresses[0].get('dn'):
                 for mac in macaddresses:
                     # Check if mac-address user don't live in time-to-live period
-                    wc = datetime_to_filetime(mac.get('attributes').get('whencreated'))
-                    if ft > wc:
+                    wc = datetime_to_filetime(mac.get('attributes').get(mac_created_attr))
+                    if ts > wc:
                         if soft_deletion:
                             # Modify description
-                            last_access = filetime_to_datetime(mac.get('attributes').get('lastlogontimestamp'))
+                            last_access = mac.get('attributes').get(mac_lastlogon_attr)
                             desc = 'Disabled on {0}. Last access on {1}. Description: {2}'.format(
                                 str(datetime.date.today()), str(last_access.date()),
-                                mac.get('attributes').get('description')
+                                mac.get('attributes').get('description')[0]
                             )
                             # Disable mac-address
-                            cli_disable_mac(cfg, bind_start, mac.get('attributes').get('samaccountname'), wt, arguments,
+                            cli_disable_mac(cfg, bind_start, mac.get('attributes').get(mac_login_attr), wt, arguments,
                                             description=desc)
                         else:
                             # Remove mac-address
-                            cli_delete_mac(cfg, bind_start, mac.get('attributes').get('samaccountname'), wt, arguments)
+                            cli_delete_mac(cfg, bind_start, mac.get('attributes').get(mac_login_attr), wt, arguments)
 
 
     def cli_daemon(func, wait=1, *args):
