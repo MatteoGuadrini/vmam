@@ -193,13 +193,13 @@ def check_module(module):
 # endregion
 
 # region Global variable
-VERSION = '1.4.0'
+VERSION = '1.4.1'
 __all__ = ['logwriter', 'debugger', 'confirm', 'read_config', 'get_platform', 'new_config', 'bind_ldap',
            'check_connection', 'check_config', 'connect_ldap', 'unbind_ldap', 'query_ldap', 'check_ldap_version',
            'new_user', 'set_user', 'delete_user', 'set_user_password', 'add_to_group', 'remove_to_group',
            'filetime_to_datetime', 'datetime_to_filetime', 'get_time_sync', 'string_to_datetime', 'format_mac',
            'connect_client', 'run_command', 'get_mac_address', 'get_client_user', 'check_vlan_attributes', 'VERSION',
-           'get_mac_from_file']
+           'get_mac_from_file', 'timestamp_to_datetime', 'datetime_to_timestamp']
 bind_start = False
 
 
@@ -869,6 +869,36 @@ def datetime_to_filetime(date_time):
     return filetime + (date_time.microsecond * 10)
 
 
+def timestamp_to_datetime(timestamp):
+    """
+    Convert LDAP Kerberos timestamp LDAP to datetime
+
+    :param timestamp: kerberos timestamp string
+    :return: datetime object
+
+    .. testcode::
+
+        >>> dt = timestamp_to_datetime('20200903053604Z')
+        >>> print(dt)
+    """
+    return datetime.datetime.strptime(timestamp, '%Y%m%d%H%M%S' + 'Z')
+
+
+def datetime_to_timestamp(date_time):
+    """
+    Convert datetime to LDAP Kerberos timestamp
+
+    :param date_time: datetime object
+    :return: kerberos timestamp string
+
+    .. testcode::
+
+        >>> ft = datetime_to_timestamp(datetime.datetime(1986, 1, 25))
+        >>> print(ft)
+    """
+    return date_time.strftime('%Y%m%d%H%M%S' + 'Z')
+
+
 def get_time_sync(timedelta):
     """
     It takes the date for synchronization
@@ -1249,13 +1279,13 @@ if __name__ == '__main__':
                      'description': description}
         else:
             # Get uidNumber and gidNumber
-            ug = query_ldap(bind, config['LDAP']['mac_user_base_dn'], ['uidNumber', 'gidNumber'], uidNumber='*')
+            ug = query_ldap(bind, config['LDAP']['mac_user_base_dn'], ['uidNumber'], uidNumber='*')
             if ug:
                 uid = ug[-1]['attributes']['uidNumber'] + 1
-                gid = ug[-1]['attributes']['gidNumber'] + 1
+                gid = uid + 1
             else:
                 uid = 1
-                gid = 1
+                gid = 2
             login_attr = 'uid'
             user_class = 'inetorgperson'
             group_class = 'posixgroup'
@@ -1408,8 +1438,6 @@ if __name__ == '__main__':
         except Exception as err:
             print('ERROR:', err)
             logger.error(err)
-            import traceback
-            traceback.print_last()
             exit(9)
         if not exist:
             print('Mac-address user {0} successfully created'.format(mac))
@@ -1675,30 +1703,58 @@ if __name__ == '__main__':
             debugger(arguments.verbose, wt, 'Bind on LDAP servers {0} with user {1}'.format(
                 ','.join(cfg['LDAP']['servers']), cfg['LDAP']['bind_user']))
             bind_start = bind_ldap(srv, cfg['LDAP']['bind_user'], cfg['LDAP']['bind_pwd'], tls=cfg['LDAP']['tls'])
-        # Get computers from domain controllers
-        debugger(arguments.verbose, wt, 'Convert datetime format to filetime format for computer query: {0} ago'.format(
-            cfg['LDAP']['time_computer_sync']))
+        # Chek LDAP version
+        ldap_v = check_ldap_version(bind_start)
         td = get_time_sync(cfg['LDAP']['time_computer_sync'])
-        ft = datetime_to_filetime(td)
-        # Query LDAP to take all computer accounts based on filetime
-        computers = query_ldap(bind_start, cfg['LDAP']['computer_base_dn'],
-                               ['name', 'employeetype', 'lastlogon', 'distinguishedname'], comp='>=',
-                               objectcategory='computer', lastlogon=ft)
+        if ldap_v == 'MS-LDAP':
+            debugger(arguments.verbose, wt,
+                     'Convert datetime format to filetime format for computer query: {0} ago'.format(
+                         cfg['LDAP']['time_computer_sync']))
+            ft = datetime_to_filetime(td)
+            host_search_attributes = {'objectcategory': 'computer', 'lastlogon': ft}
+            host_get_attributes = ['dNSHostName', 'lastlogon']
+            hostname_attr = 'dNSHostName'
+            user_get_attributes = ['samaccountname']
+            user_class_attr = 'person'
+            user_login_attr = 'samaccountname'
+            group_get_attributes = ['member']
+            group_class_attr = 'group'
+            group_login_attr = 'name'
+        else:
+            debugger(arguments.verbose, wt,
+                     'Convert datetime format to timestamp format for computer query: {0} ago'.format(
+                         cfg['LDAP']['time_computer_sync']))
+            ts = datetime_to_timestamp(td)
+            host_search_attributes = {'objectClass': 'nshost', 'krbLastPwdChange': ts}
+            host_get_attributes = ['fqdn', 'krbLastPwdChange']
+            hostname_attr = 'fqdn'
+            user_get_attributes = ['uid']
+            user_class_attr = 'inetorgperson'
+            user_login_attr = 'uid'
+            group_get_attributes = ['member']
+            group_class_attr = 'posixgroup'
+            group_login_attr = 'cn'
+        # Query LDAP to take all computer accounts
+        computers = query_ldap(bind_start, cfg['LDAP']['computer_base_dn'], host_get_attributes, comp='>=',
+                               **host_search_attributes)
         # Check if there are updated computers
         if computers:
-            c_attributes = [computer.get('attributes') for computer in computers if computer.get('attributes')]
-            for c_attribute in c_attributes:
+            for c_attribute in computers:
                 # Connection to the client via WINRM protocol
-                debugger(arguments.verbose, wt, 'Try connect to {0} via WINRM'.format(c_attribute['name']))
-                if check_connection(c_attribute['name'], 5985):
+                if isinstance(c_attribute['attributes'][hostname_attr], list):
+                    hostname = c_attribute['attributes'][hostname_attr][0]
+                else:
+                    hostname = c_attribute['attributes'][hostname_attr]
+                debugger(arguments.verbose, wt, 'Try connect to {0} via WINRM'.format(hostname))
+                if check_connection(hostname, 5985):
                     try:
                         debugger(arguments.verbose, wt, 'Connected successful to {0} via WINRM'.format(
-                            c_attribute['name']))
-                        client = connect_client(c_attribute['name'], cfg['VMAM']['winrm_user'],
+                            hostname))
+                        client = connect_client(hostname, cfg['VMAM']['winrm_user'],
                                                 cfg['VMAM']['winrm_pwd'])
                         # Run the commands
                         try:
-                            debugger(arguments.verbose, wt, 'Get mac-address of {0}'.format(c_attribute['name']))
+                            debugger(arguments.verbose, wt, 'Get mac-address of {0}'.format(hostname))
                             # Get all mac-addresses of the computer
                             if cfg['VMAM']['filter_exclude']:
                                 macs = get_mac_address(client, *cfg['VMAM']['filter_exclude'])
@@ -1707,24 +1763,26 @@ if __name__ == '__main__':
                             # Check mac list
                             if not macs:
                                 print('WARNING: There are no mac-addresses present on {0} computer'.format(
-                                    c_attribute['name']))
+                                    hostname))
                                 wt.warning('There are no mac-addresses present on {0} computer'.format(
-                                    c_attribute['name']))
+                                    hostname))
                             # Get the last user of the computer
-                            debugger(arguments.verbose, wt, 'Get logged in users of {0}'.format(c_attribute['name']))
+                            debugger(arguments.verbose, wt, 'Get logged in users of {0}'.format(
+                                hostname))
                             users = get_client_user(client)
                             # Check user list
                             if not users:
                                 print('WARNING: There are no logged in users on {0} computer'.format(
-                                    c_attribute['name']))
-                                wt.warning('There are no logged in users on {0} computer'.format(c_attribute['name']))
+                                    hostname))
+                                wt.warning('There are no logged in users on {0} computer'.format(
+                                    hostname))
                                 continue
                             # Search user on LDAP server
                             try:
                                 debugger(arguments.verbose, wt, 'Search user {0} on LDAP'.format(users[0][0]))
                                 user = query_ldap(bind_start, cfg['LDAP']['user_base_dn'],
                                                   cfg['LDAP']['verify_attrib'],
-                                                  objectcategory='person', samaccountname=users[0][0])
+                                                  **{'objectclass': user_class_attr, user_login_attr: users[0][0]})
                                 # Check the match of the attributes for the creation of the mac-address
                                 if user and user[0].get('attributes'):
                                     debugger(arguments.verbose, wt, 'Check the match of the attributes for the '
@@ -1744,7 +1802,7 @@ if __name__ == '__main__':
                                                     # Create mac-address user and assign to VLAN groups
                                                     if 'user' in cfg['LDAP']['add_group_type']:
                                                         desc = 'User: {0}, Computer: {1}'.format(
-                                                            users[0][0], c_attribute.get('name'))
+                                                            users[0][0], c_attribute['attributes'][hostname_attr])
                                                         # Check blacklist
                                                         if cfg.get('VMAM').get('black_list'):
                                                             debugger(arguments.verbose, wt,
@@ -1758,8 +1816,8 @@ if __name__ == '__main__':
                                                                                              cfg['VMAM']['mac_format'])
                                                                 ret = query_ldap(bind_start,
                                                                                  cfg['LDAP']['mac_user_base_dn'],
-                                                                                 ['samaccountname'],
-                                                                                 samaccountname=mac)
+                                                                                 user_get_attributes,
+                                                                                 **{user_login_attr: mac})
                                                                 # Now, check if mac is blacklisted
                                                                 if cli_check_list(mac, mac_list):
                                                                     print(
@@ -1778,7 +1836,7 @@ if __name__ == '__main__':
                                                                         desc = 'Blacklisted mac-address.'
                                                                         cli_disable_mac(cfg, bind_start,
                                                                                         mac.get('attributes').get(
-                                                                                            'samaccountname'), wt,
+                                                                                            user_login_attr), wt,
                                                                                         arguments,
                                                                                         description=desc)
                                                                     continue
@@ -1797,11 +1855,12 @@ if __name__ == '__main__':
                                                 # Assign computer to VLAN groups
                                                 if 'computer' in cfg['LDAP']['add_group_type']:
                                                     g = query_ldap(bind_start, cfg['LDAP']['user_base_dn'],
-                                                                   ['member', 'distinguishedname'],
-                                                                   objectclass='group',
-                                                                   name=cfg['VMAM']['vlan_group_id'][vid])
+                                                                   group_get_attributes,
+                                                                   **{'objectclass': group_class_attr,
+                                                                      group_login_attr:
+                                                                          cfg['VMAM']['vlan_group_id'][vid]})
                                                     gdn = g[0].get('dn')
-                                                    cdn = c_attribute.get('distinguishedname')
+                                                    cdn = c_attribute.get('dn')
                                                     # Add VLAN LDAP group to computer account
                                                     if cdn not in g[0]['attributes']['member']:
                                                         add_to_group(bind_start, gdn, cdn)
@@ -1816,7 +1875,7 @@ if __name__ == '__main__':
                                                                  'computer {1}'.format(
                                                                      cfg['VMAM']['vlan_group_id'][vid], cdn))
                                                     # Add description to computer account
-                                                    set_user(bind_start, c_attribute.get('distinguishedname'),
+                                                    set_user(bind_start, c_attribute.get('dn'),
                                                              description='User: {0} Mac: {1}'.format(
                                                                  users[0][0],
                                                                  ' '.join(
@@ -1830,8 +1889,9 @@ if __name__ == '__main__':
                                                         if vgkey != vid:
                                                             g = query_ldap(bind_start,
                                                                            cfg['LDAP']['user_base_dn'],
-                                                                           ['member', 'distinguishedname'],
-                                                                           objectclass='group', name=vgvalue)
+                                                                           group_get_attributes,
+                                                                           **{'objectclass': group_class_attr,
+                                                                              group_login_attr: vgvalue})
                                                             gdn = g[0]['dn']
                                                             gmember = g[0]['attributes']['member']
                                                             # Remove member of group
@@ -1863,40 +1923,59 @@ if __name__ == '__main__':
                         wt.error(err)
                         continue
                 else:
-                    debugger(arguments.verbose, wt, 'Computer {0} is unreachable'.format(c_attribute['name']))
+                    debugger(arguments.verbose, wt, 'WINRM is not running on the computer {0}'.format(hostname))
+        # Disable/Delete process
         if cfg['VMAM'].get('remove_process'):
             debugger(arguments.verbose, wt, 'Start disable/delete process')
             # Get old mac-address user
-            debugger(arguments.verbose, wt,
-                     'Convert datetime format to filetime format for mac-address user query. mac ttl: {0}'.format(
-                         cfg['LDAP']['mac_user_ttl']
-                     ))
+            td = get_time_sync(cfg['LDAP']['mac_user_ttl'])
+            write_attrib = cfg['LDAP']['write_attrib'] if cfg['LDAP']['write_attrib'] else 'employeetype'
+            if ldap_v == 'MS-LDAP':
+                debugger(arguments.verbose, wt,
+                         'Convert datetime format to filetime format for mac-address user query. '
+                         'mac ttl: {0} ago'.format(
+                             cfg['LDAP']['mac_user_ttl']
+                         ))
+                ts = datetime_to_filetime(td)
+                mac_get_attributes = ['name', write_attrib, 'samaccountname', 'distinguishedname', 'whencreated',
+                                      'description', 'lastlogontimestamp']
+                mac_filter = {'objectClass': 'user', 'lastlogontimestamp': ts}
+                mac_created_attr = 'whencreated'
+                mac_lastlogon_attr = 'lastlogontimestamp'
+                mac_login_attr = 'samaccountname'
+            else:
+                debugger(arguments.verbose, wt,
+                         'Convert datetime format to timestamp format for mac-address user query. '
+                         'mac ttl: {0} ago'.format(cfg['LDAP']['mac_user_ttl']))
+                ts = datetime_to_timestamp(td)
+                mac_get_attributes = ['cn', write_attrib, 'uid', 'createTimestamp', 'description',
+                                      'krbLastSuccessfulAuth']
+                mac_filter = {'objectClass': 'posixAccount', 'krbLastSuccessfulAuth': ts}
+                mac_created_attr = 'createTimestamp'
+                mac_lastlogon_attr = 'krbLastSuccessfulAuth'
+                mac_login_attr = 'uid'
             # Get value for soft deletion
             soft_deletion = cfg['VMAM']['soft_deletion']
-            td = get_time_sync(cfg['LDAP']['mac_user_ttl'])
-            ft = datetime_to_filetime(td)
-            write_attrib = cfg['LDAP']['write_attrib'] if cfg['LDAP']['write_attrib'] else 'employeetype'
             macaddresses = query_ldap(bind_start, cfg['LDAP']['mac_user_base_dn'],
-                                      ['name', write_attrib, 'samaccountname', 'distinguishedname', 'whencreated',
-                                       'description'], comp='<=', objectcategory='user', lastlogontimestamp=ft)
-            if macaddresses[0].get('dn'):
+                                      mac_get_attributes, comp='<=', **mac_filter)
+            if macaddresses and macaddresses[0].get('dn'):
                 for mac in macaddresses:
                     # Check if mac-address user don't live in time-to-live period
-                    wc = datetime_to_filetime(mac.get('attributes').get('whencreated'))
-                    if ft > wc:
+                    wc = datetime_to_filetime(mac.get('attributes').get(mac_created_attr))
+                    if ts > wc:
                         if soft_deletion:
                             # Modify description
-                            last_access = filetime_to_datetime(mac.get('attributes').get('lastlogontimestamp'))
+                            last_access = mac.get('attributes').get(mac_lastlogon_attr)
                             desc = 'Disabled on {0}. Last access on {1}. Description: {2}'.format(
                                 str(datetime.date.today()), str(last_access.date()),
-                                mac.get('attributes').get('description')
+                                mac.get('attributes').get('description')[0]
                             )
                             # Disable mac-address
-                            cli_disable_mac(cfg, bind_start, mac.get('attributes').get('samaccountname'), wt, arguments,
+                            cli_disable_mac(cfg, bind_start, mac.get('attributes').get(mac_login_attr), wt, arguments,
                                             description=desc)
                         else:
                             # Remove mac-address
-                            cli_delete_mac(cfg, bind_start, mac.get('attributes').get('samaccountname'), wt, arguments)
+                            cli_delete_mac(cfg, bind_start, mac.get('attributes').get(mac_login_attr), wt, arguments)
 
 
     def cli_daemon(func, wait=1, *args):
