@@ -2013,7 +2013,7 @@ if __name__ == '__main__':
             exit(1)
         # Get action
         cli = cli_select_action(args.action)
-        # Deamon?
+        # Daemon?
         if 'daemon' in args and args.daemon:
             print('Start vmam daemon...')
             # Add force argument for disable/remove process
