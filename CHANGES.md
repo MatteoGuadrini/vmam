@@ -1,5 +1,13 @@
 # Release notes
 
+## 1.4.0
+Sep 5, 2020
+
+### Improvements command line
+
+- Added support for FreeIpa server. 
+- Fix user creation and re-enabled user.
+
 ## 1.3.0
 Apr 25, 2020
 
