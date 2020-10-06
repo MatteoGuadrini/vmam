@@ -2016,6 +2016,8 @@ if __name__ == '__main__':
         # Deamon?
         if 'daemon' in args and args.daemon:
             print('Start vmam daemon...')
+            # Add force argument for disable/remove process
+            args.force = True
             # Read the configuration file
             cfg = read_config(args.conf)
             cli_daemon(cli, cfg.get('VMAM').get('automatic_process_wait'), args)
