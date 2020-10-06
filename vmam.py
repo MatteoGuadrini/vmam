@@ -1470,7 +1470,8 @@ if __name__ == '__main__':
         u_search_attributes = ['samaccountname', 'description'] if ldap_v == 'MS-LDAP' else ['uid', 'description']
         ret = query_ldap(bind, config['LDAP']['mac_user_base_dn'], u_search_attributes, **{login_attr: mac})
         if ret and ret[0].get('dn'):
-            force = confirm('Do you want to disable {0} mac-address?'.format(mac)) if not arguments.force else True
+            force = confirm('Do you want to disable {0} '
+                            'mac-address?'.format(mac)) if 'force' not in arguments else True
             if force:
                 try:
                     if ldap_v == 'MS-LDAP':
@@ -1516,7 +1517,8 @@ if __name__ == '__main__':
         u_search_attributes = ['samaccountname'] if ldap_v == 'MS-LDAP' else ['uid']
         ret = query_ldap(bind, config['LDAP']['mac_user_base_dn'], u_search_attributes, **{login_attr: mac})
         if ret and ret[0].get('dn'):
-            force = confirm('Do you want to delete {0} mac-address?'.format(mac)) if not arguments.force else True
+            force = confirm('Do you want to delete {0} '
+                            'mac-address?'.format(mac)) if 'force' not in arguments else True
             if force:
                 try:
                     delete_user(bind, dn)
