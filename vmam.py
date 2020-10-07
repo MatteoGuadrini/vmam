@@ -1466,27 +1466,42 @@ if __name__ == '__main__':
         # Query: check if mac-address exist
         debugger(arguments.verbose, logger, 'Exist mac-address {0} on LDAP servers {1}?'.format(
             mac, ','.join(config['LDAP']['servers'])))
-        login_attr = 'samaccountname' if ldap_v == 'MS-LDAP' else 'uid'
-        u_search_attributes = ['samaccountname', 'description'] if ldap_v == 'MS-LDAP' else ['uid', 'description']
+        if ldap_v == 'MS-LDAP':
+            login_attr = 'samaccountname'
+            u_search_attributes = ['samaccountname', 'description', 'useraccountcontrol']
+        else:
+            login_attr = 'uid'
+            u_search_attributes = ['uid', 'description', 'nsaccountlock']
         ret = query_ldap(bind, config['LDAP']['mac_user_base_dn'], u_search_attributes, **{login_attr: mac})
         if ret and ret[0].get('dn'):
             force = confirm('Do you want to disable {0} '
-                            'mac-address?'.format(mac)) if 'force' not in arguments else True
+                            'mac-address?'.format(mac)) if 'force' not in arguments or not arguments.force else True
             if force:
                 try:
                     if ldap_v == 'MS-LDAP':
-                        set_user(bind, dn, useraccountcontrol=514)
+                        if ret[0].get('attributes').get('useraccountcontrol') != 514:
+                            set_user(bind, dn, useraccountcontrol=514)
+                            # Modify description
+                            if description not in ret[0].get('attributes').get('description'):
+                                set_user(bind, dn, description=description)
+                            print('Mac-address {0} successfully disabled'.format(mac))
+                            logger.info('Mac-address {0} successfully disabled'.format(mac))
+                        else:
+                            print('Mac-address {0} is already disabled'.format(mac))
                     else:
-                        set_user(bind, dn, nsaccountlock='True')
-                    # Modify description
-                    if description not in ret[0].get('attributes').get('description'):
-                        set_user(bind, dn, description=description)
+                        if 'True' not in ret[0].get('attributes').get('nsaccountlock'):
+                            set_user(bind, dn, nsaccountlock='True')
+                            # Modify description
+                            if description not in ret[0].get('attributes').get('description'):
+                                set_user(bind, dn, description=description)
+                            print('Mac-address {0} successfully disabled'.format(mac))
+                            logger.info('Mac-address {0} successfully disabled'.format(mac))
+                        else:
+                            print('Mac-address {0} is already disabled'.format(mac))
                 except Exception as err:
                     print('ERROR:', err)
                     logger.error(err)
                     exit(11)
-                print('Mac-address {0} successfully disabled'.format(mac))
-                logger.info('Mac-address {0} successfully disabled'.format(mac))
         else:
             print('ERROR: Mac-address {0} does not exists'.format(mac))
             exit(8)
@@ -1518,7 +1533,7 @@ if __name__ == '__main__':
         ret = query_ldap(bind, config['LDAP']['mac_user_base_dn'], u_search_attributes, **{login_attr: mac})
         if ret and ret[0].get('dn'):
             force = confirm('Do you want to delete {0} '
-                            'mac-address?'.format(mac)) if 'force' not in arguments else True
+                            'mac-address?'.format(mac)) if 'force' not in arguments or not arguments.force else True
             if force:
                 try:
                     delete_user(bind, dn)
