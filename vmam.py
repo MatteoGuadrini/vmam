@@ -1666,6 +1666,8 @@ if __name__ == '__main__':
                 # Verify if black list file exists
                 if os.path.exists(cfg['VMAM']['black_list']):
                     # Transform file in a list
+                    debugger(arguments.verbose, wt, 'Get mac-addresses from file {0}'.format(
+                        cfg.get('VMAM').get('black_list')))
                     mac_list = get_mac_from_file(cfg['VMAM']['black_list'], cfg['VMAM']['mac_format'])
                     # Now, check if mac is blacklisted
                     if cli_check_list(''.join(arguments.add), mac_list):
@@ -1675,6 +1677,8 @@ if __name__ == '__main__':
                         wt.warning('The mac-address {0} is blacklisted. See black list file: {1}'.format(
                             ''.join(arguments.add), cfg['VMAM']['black_list']
                         ))
+                        desc = 'Blacklisted mac-address.'
+                        cli_disable_mac(cfg, bind, ''.join(arguments.add), wt, arguments, description=desc)
                         exit(13)
                 else:
                     print('ERROR: The file {0} does not exist.'.format(cfg['VMAM']['black_list']))
@@ -1829,6 +1833,9 @@ if __name__ == '__main__':
                                                             # Verify if black list file exists
                                                             if os.path.exists(cfg['VMAM']['black_list']):
                                                                 # Transform file in a list
+                                                                debugger(arguments.verbose, wt,
+                                                                         'Get mac-addresses from file {0}'.format(
+                                                                             cfg.get('VMAM').get('black_list')))
                                                                 mac_list = get_mac_from_file(cfg['VMAM']['black_list'],
                                                                                              cfg['VMAM']['mac_format'])
                                                                 ret = query_ldap(bind_start,
