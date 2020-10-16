@@ -1478,6 +1478,7 @@ if __name__ == '__main__':
                             'mac-address?'.format(mac)) if 'force' not in arguments or not arguments.force else True
             if force:
                 try:
+                    debugger(arguments.verbose, logger, 'Disable mac-address {0}'.format(dn))
                     if ldap_v == 'MS-LDAP':
                         if ret[0].get('attributes').get('useraccountcontrol') != 514:
                             set_user(bind, dn, useraccountcontrol=514)
@@ -1536,6 +1537,7 @@ if __name__ == '__main__':
                             'mac-address?'.format(mac)) if 'force' not in arguments or not arguments.force else True
             if force:
                 try:
+                    debugger(arguments.verbose, logger, 'Delete mac-address {0}'.format(dn))
                     delete_user(bind, dn)
                 except Exception as err:
                     print('ERROR:', err)
@@ -1760,6 +1762,8 @@ if __name__ == '__main__':
                                **host_search_attributes)
         # Check if there are updated computers
         if computers:
+            debugger(arguments.verbose, wt, 'Find computers that have logged in {0} ago'.format(
+                cfg['LDAP']['time_computer_sync']))
             for c_attribute in computers:
                 # Connection to the client via WINRM protocol
                 if isinstance(c_attribute['attributes'][hostname_attr], list):
@@ -1798,6 +1802,7 @@ if __name__ == '__main__':
                                 wt.warning('There are no logged in users on {0} computer'.format(
                                     hostname))
                                 continue
+                            debugger(arguments.verbose, wt, 'The last logged in user is {0}'.format(users[0][0]))
                             # Search user on LDAP server
                             try:
                                 debugger(arguments.verbose, wt, 'Search user {0} on LDAP'.format(users[0][0]))
@@ -1819,6 +1824,11 @@ if __name__ == '__main__':
                                                 ok = check_vlan_attributes(kid, cfg['LDAP']['match'], *vad)
                                             # Check if the match has taken place
                                             if ok:
+                                                debugger(arguments.verbose, wt,
+                                                         'Successful match: {0} found in attribute {1} '
+                                                         'with method "{2}"'.format(
+                                                             kid, vad, cfg['LDAP']['match']
+                                                         ))
                                                 for mac in macs:
                                                     # Create mac-address user and assign to VLAN groups
                                                     if 'user' in cfg['LDAP']['add_group_type']:
@@ -1983,8 +1993,14 @@ if __name__ == '__main__':
             macaddresses = query_ldap(bind_start, cfg['LDAP']['mac_user_base_dn'],
                                       mac_get_attributes, comp='<=', **mac_filter)
             if macaddresses and macaddresses[0].get('dn'):
+                debugger(arguments.verbose, wt, 'Mac-addresses that logged in more than {0} ago found'.format(
+                    cfg['LDAP']['mac_user_ttl']
+                ))
                 for mac in macaddresses:
                     # Check if mac-address user don't live in time-to-live period
+                    debugger(arguments.verbose, wt, 'Check if mac-address {0} logged in after creation date {1}'.format(
+                        mac.get('attributes').get(mac_login_attr), mac.get('attributes').get(mac_created_attr)
+                    ))
                     wc = datetime_to_filetime(mac.get('attributes').get(mac_created_attr))
                     if ts > wc:
                         if soft_deletion:
