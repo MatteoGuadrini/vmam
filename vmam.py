@@ -193,7 +193,7 @@ def check_module(module):
 # endregion
 
 # region Global variable
-VERSION = '1.4.1'
+VERSION = '1.4.4'
 __all__ = ['logwriter', 'debugger', 'confirm', 'read_config', 'get_platform', 'new_config', 'bind_ldap',
            'check_connection', 'check_config', 'connect_ldap', 'unbind_ldap', 'query_ldap', 'check_ldap_version',
            'new_user', 'set_user', 'delete_user', 'set_user_password', 'add_to_group', 'remove_to_group',
