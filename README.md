@@ -20,7 +20,7 @@ This is based on [RFC 3579](https://tools.ietf.org/html/rfc3579#section-2.1).
 
 ## What's vmam?
 
-**vmam** is a Free and Open Source command line tool written in python, which manages, manually or automatically, 
+**vmam** is a Free and Open Source command line tool and python module, which manages, manually or automatically, 
 access to the network based on the configurations of its network equipment through LDAP server (Active Directory, FreeIPA, etc.) and 
 RADIUS server (Microsoft Radius or Free Radius) see [IEEE 802.1X](https://en.wikipedia.org/wiki/IEEE_802.1X), 
 based on [RFC 3580](https://tools.ietf.org/html/rfc3580), [RFC 4014](https://tools.ietf.org/html/rfc4014),
@@ -63,12 +63,12 @@ sudo python3 setup.py install
 
 In manual mode, mac-addresses are managed from the command line using the `vmam mac` command.
 The *mac* command has options to add, remove and disable the mac-addresses that can access the network.
-For more details, see the docs.
+For more details, [see the docs](https://vmam.readthedocs.io/en/latest/cmd.html#manual-mode).
 
 ### Automatic mode
 
 In automatic mode, mac-addresses are managed by contacting LDAP server and taking the last machines (variable in the configuration file) 
-that contacted the LDAP server from N seconds, minutes, hour or days, depending on the needs and policies decided.
+that contacted the LDAP server from _N_ seconds, minutes, hour or days, depending on the needs and policies decided.
 
 > Attention: Clients must have WINRM active. See the `winrm quickconfig` command. 
 
@@ -79,6 +79,8 @@ takes the information of the last connected user and the tabs of active network,
 assign to the mac-address and then exit.
 
 If you were to specify the `--daemon/-d` argument then the process would continue until a manual interrupt (kill the process).
+
+For more details, [see the docs](https://vmam.readthedocs.io/en/latest/cmd.html#automatic-mode).
 
 
 ## How to start
@@ -110,6 +112,41 @@ Now it will be enough, edit and customize the configuration file following the d
 
 This command will return the guide to correctly configure LDAP and the radius server based on the configuration file.
 
+## Python module
+
+_vmam_ can also be used as a python module, to build your own scripts to manage mac addresses that access the network.
+
+Here is a simple script to add mac addresses from a file.
+
+```python
+from vmam import *
+# activate debug
+debug = True
+# log writer
+wt = logwriter('/tmp/log.log')
+# start script
+debugger(debug, wt, 'Start...')
+# connect to LDAP server
+conn = connect_ldap(['dc1.foo.bar'])
+bind = bind_ldap(conn, r'domain\admin', 'password', tls=True)
+ldap_version = check_ldap_version(bind, 'dc=foo,dc=bar')
+for mac in get_mac_from_file('/tmp/mac_list.txt'):
+    debugger(debug, wt, 'create mac address {}'.format(mac))
+    # create mac address
+    dn = 'cn={},ou=mac,dc=foo,dc=bar'.format(mac)
+    attrs = {'givenname': 'mac-address',
+                'sn': mac,
+                'samaccountname': mac
+            }
+    # create mac-address user
+    new_user(bind, dn, **attrs)
+    # add mac user to vlan group
+    add_to_group(bind,   'cn=vlan_group100,ou=groups,dc=foo,dc=bar', dn)
+    # set password and password never expires
+    set_user(bind, dn, pwdlastset=-1, useraccountcontrol=66048)
+    set_user_password(bind, dn, mac, ldap_version=ldap_version)
+```
+
 ## Documentation
 The official documentation for more details of configuration and implementations, is here: [docs](https://vmam.readthedocs.io/en/latest/)
 
@@ -140,6 +177,10 @@ Come today, we are organized to dare to listen to them and answers, every day of
 Thanks Alexey Diyan for pywinrm module; thanks Giovanni Cannata for ldap3 module; thanks Ben Finney for python-daemon module; thanks to all yaml team.
 
 Thanks to Mark Lutz for writing the _Learning Python_ and _Programming Python_ books that make up my python foundation.
+
+Thanks to Kenneth Reitz and Tanya Schlusser for writing the _The Hitchhiker’s Guide to Python_ books.
+
+Thanks to Dane Hillard for writing the _Practices of the Python Pro_ books.
 
 Special thanks go to my wife, who understood the hours of absence for this development. 
 Thanks to my children, for the daily inspiration they give me and to make me realize, that life must be simple.
